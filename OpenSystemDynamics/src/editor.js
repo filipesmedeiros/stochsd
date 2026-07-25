@@ -4738,7 +4738,7 @@ class FlowTool extends TwoPointerTool {
 		this.direction = "";
 	}
 	static leftMouseDown(x, y) {
-
+	  isDrawingFlow = true;
 	}
 	static mouseMove(x, y) {
 		if (this.current_connection) {
@@ -4747,6 +4747,7 @@ class FlowTool extends TwoPointerTool {
 			// First time moving mouse
 			this.firstLeftMouseMove(x, y);
 		}
+		currentMousePos = [x, y];
 	}
 	static firstLeftMouseMove(x, y) {
 		// does not create anything until the first leftMouseMove have been triggered
@@ -4799,6 +4800,9 @@ class FlowTool extends TwoPointerTool {
 		}
 	}
 	static leftMouseUp(x, y, shiftKey) {
+	  isDrawingFlow = false;
+		currentMousePos = [undefined, undefined];
+			
 		if (this.current_connection) {
 			this.mouseUpSingleAnchor(x, y, shiftKey, this.current_connection.end_anchor.id);
 			this.current_connection = null;
@@ -5114,8 +5118,10 @@ function attach_anchor(anchor) {
 	return true;
 }
 
-var currentTool = MouseTool;
+let currentTool = MouseTool;
+let isDrawingFlow = false;
 let lastTool = undefined;
+let currentMousePos = [undefined, undefined];
 
 class CoordRect {
 	constructor() {
@@ -5847,7 +5853,7 @@ $(window).load(function () {
 		let moveSize = 2;
 		if (event.shiftKey) {
 			moveSize = 16;
-		}
+    }
 		if (event.key == "ArrowLeft") {
 			MouseTool.mouseMove(mouse.downX - moveSize, mouse.downY, false);
 			event.preventDefault();
@@ -5895,7 +5901,7 @@ $(window).load(function () {
 			}
 			if (event.key.toLowerCase() == "z") {
 				History.doUndo();
-			}
+      }
 			if (event.key.toLowerCase() == "y") {
 				History.doRedo();
 			}
@@ -5906,32 +5912,18 @@ $(window).load(function () {
 				// Clipboard.paste();
 				// History.storeUndoState();
 			}
-		} else {
-  		if (event.key === "s") {
-        ToolBox.setTool("stock")
-      }
-      if (event.key === "a") {
-        ToolBox.setTool("variable")
-      }
-      if (event.key === "f") {
-        ToolBox.setTool("flow")
-      }
-      if (event.key === "c") {
-        ToolBox.setTool("converter")
-      }
-      if (event.key === "p") {
-        ToolBox.setTool("constant")
-      }
-      if (event.key === "g") {
-        ToolBox.setTool("ghost")
-      }
-      if (event.key === "l") {
-        ToolBox.setTool("link")
-      }
-      if (event.key === "z") {
-        ToolBox.setTool(lastTool)
-      }
-		}
+		} else if(!isDrawingFlow) {
+      if (event.key === "." && get_selected_ids().length === 0)
+        document.querySelector("#tools-menu-button").style = "";
+      else if (event.key === "s") ToolBox.setTool("stock")
+      else if (event.key === "a") ToolBox.setTool("variable")
+      else if (event.key === "f") ToolBox.setTool("flow")
+      else if (event.key === "c") ToolBox.setTool("converter")
+      else if (event.key === "p") ToolBox.setTool("constant")
+      else if (event.key === "g") ToolBox.setTool("ghost")
+      else if (event.key === "l") ToolBox.setTool("link")
+      else if (event.key === "z") ToolBox.setTool(lastTool)
+		} else if (event.key === "Shift") FlowTool.rightMouseDown(currentMousePos[0], currentMousePos[1]);
 		environment.keyDown(event);
 	});
 
@@ -7753,7 +7745,7 @@ class LineOptionsComponent extends HtmlComponent {
 }
 
 
-// This is the super class dor ComparePlotDialog and TableDialog
+// This is the super class for ComparePlotDialog and TableDialog
 class DisplayDialog extends jqDialog {
 	constructor(id) {
 		super();
