@@ -3,8 +3,9 @@
 This file may distributed and/or modified under the
 terms of the Affero General Public License (http://www.gnu.org/licenses/agpl-3.0.html).
 
+
 */
-// Dialog window handlers 
+// Dialog window handlers
 /** @type {DefinitionEditor} */
 var definitionEditor;
 /** @type {ConverterDialog} */
@@ -30,19 +31,22 @@ var thirdPartyLicensesDialog;
 /** @type {LicenseDialog} */
 var licenseDialog;
 
+const isMac = ["Macintosh", "MacIntel", "MacPPC", "Mac68K"].includes(window.navigator.platform);
+
 
 // This values are not used by StochSD, as primitives cannot be resized in StochSD
 // They are only used for exporting the model to Insight Maker
 const type_size = {
 	"stock": [80, 60],
 	"variable": [60, 60],
+	"flow": [60, 60],
 	"converter": [80, 60],
 	"text": [120, 60]
 }
 
 // Name type translations
 // the keys are what the visuals have as type
-// The values what new names should be based on when creating new visuals 
+// The values what new names should be based on when creating new visuals
 const type_basename = {
 	timeplot: "TimePlot",
 	compareplot: "ComparePlot",
@@ -69,7 +73,7 @@ var connection_array = {};
 /** @type {{ [id: string]: OnePointer }} */
 var object_array = {};
 
-const mouse = { 
+const mouse = {
 	// Stores state related to mouse
 	clickedOnObject: false,
 	lastClickedPrimitive: null, // Points to the object we last clicked
@@ -80,10 +84,10 @@ const mouse = {
 	y: 0,
 	emptyClickDown: false,
 	// NOTE: values for event.which should be used
-	// event.button will give incorrect results 
-	left: 1, 
-	middle: 2, 
-	right: 3 
+	// event.button will give incorrect results
+	left: 1,
+	middle: 2,
+	right: 3
 };
 
 
@@ -91,7 +95,7 @@ const mouse = {
 var global_log = "";
 
 
-// default svg values 
+// default svg values
 var defaultFill = "transparent";
 var defaultStroke = "black";
 
@@ -121,7 +125,7 @@ function restoreAfterRestart() {
 
 		if (Preferences.get("promptTimeUnitDialogOnStart") && isTimeUnitOk(getTimeUnits()) === false) {
 			// if creating new file without OK timeUnit => promt TimeUnitDialog
-			// prompt TimeUnitDialog is unit not set 
+			// prompt TimeUnitDialog is unit not set
 			timeUnitDialog.show();
 		}
 		return;
@@ -142,7 +146,7 @@ function restoreAfterRestart() {
 
 	if (Preferences.get("promptTimeUnitDialogOnStart") && isTimeUnitOk(getTimeUnits()) === false) {
 		// if opening new file without OK timeUnit => promt TimeUnitDialog
-		// prompt TimeUnitDialog is unit not set 
+		// prompt TimeUnitDialog is unit not set
 		timeUnitDialog.show();
 	}
 }
@@ -365,7 +369,7 @@ class InfoBar {
 				let type = selected.type;
 
 				// Make first letter uppercase
-				// let Type = type.charAt(0).toUpperCase() + type.slice(1); 
+				// let Type = type.charAt(0).toUpperCase() + type.slice(1);
 				let Type = type_basename[type];
 				switch (type) {
 					case "numberbox":
@@ -445,7 +449,7 @@ TS() <- Unitless(TimeStart())
 TL() <- Unitless(TimeLength())
 TE() <- Unitless(TimeEnd())
 PoFlow(Lambda) <- RandPoisson(Dt()*Lambda)/DT()
-PulseFcn(Start, Volume, Repeat) <- Pulse(Start, Volume/DT(), 0, Repeat) 
+PulseFcn(Start, Volume, Repeat) <- Pulse(Start, Volume/DT(), 0, Repeat)
 ### End of StochSD Macros ###
 ### Put your own macro code below ###`;
 
@@ -555,7 +559,7 @@ function noteHtml(message) {
 	return (`<span class="note">Note:<br/>${message}</span>`);
 }
 
-// Param keys is array of string or a string 
+// Param keys is array of string or a string
 function keyHtml(keys) {
 	return Array.isArray(keys)
 		? keys.map(key => `<kbd>${key}</kbd>`).join("+")
@@ -588,7 +592,7 @@ function stocsd_format(number, tdecimals, roundToZeroAt) {
 	}
 
 	// since its not written as E-format by default even as its <1E-7
-	// Zero is a special case also or Round to zero when close 
+	// Zero is a special case also or Round to zero when close
 	if (number == 0 || (roundToZeroAt && Math.abs(number) < roundToZeroAt)) {
 		return "0";
 	}
@@ -663,9 +667,9 @@ function hasSelectedChildren(parentId) {
 	return false;
 }
 /**
- * 
+ *
  * @param {*} id
- * @param {"value" | "field"} field 
+ * @param {"value" | "field"} field
  */
 function openPrimitiveDialog(id, field = "value") {
 	let primitive = findID(id)
@@ -684,9 +688,9 @@ function openPrimitiveDialog(id, field = "value") {
 
 class BaseObject {
 		/**
-	 * @param {string} id 
-	 * @param {string} type 
-	 * @param {[number, number]} pos 
+	 * @param {string} id
+	 * @param {string} type
+	 * @param {[number, number]} pos
 	 */
 	constructor(id, type, pos) {
 		this.id = id;
@@ -773,7 +777,7 @@ class BaseObject {
 		// Do nothing. this method is supposed to be overriden by subclasses
 	}
 	afterMove(diff_x, diff_y) {
-		// Override this		
+		// Override this
 	}
 	attachEvent() {
 		// This happens every time a connection is connected or disconnected
@@ -821,13 +825,13 @@ class BaseObject {
 
 class OnePointer extends BaseObject {
 		/**
-	 * @param {string} id 
-	 * @param {string} type 
-	 * @param {[number, number]} pos 
+	 * @param {string} id
+	 * @param {string} type
+	 * @param {[number, number]} pos
 	 */
 	constructor(id, type, pos, extras = false) {
 		super(id, type, pos);
-		// Add object to global 
+		// Add object to global
 		object_array[id] = this;
 		this.id = id;
 		this.type = type;
@@ -1002,10 +1006,10 @@ class BasePrimitive extends OnePointer {
 /** @typedef {"invalid" | "start" | "end" | "bezier1" | "bezier2" | "orthoMiddle"} AnchorType */
 class AnchorPoint extends OnePointer {
 	/**
-	 * @param {string} id 
-	 * @param {string} type 
-	 * @param {[number, number]} pos 
-	 * @param {AnchorType} anchorType 
+	 * @param {string} id
+	 * @param {string} type
+	 * @param {[number, number]} pos
+	 * @param {AnchorType} anchorType
 	 */
 	constructor(id, type, pos, anchorType) {
 		super(id, type, pos);
@@ -1115,7 +1119,7 @@ class OrthoAnchorPoint extends AnchorPoint {
 }
 
 function safeDivision(nominator, denominator) {
-	// Make sure division by Zero does not happen 
+	// Make sure division by Zero does not happen
 	return denominator == 0 ? 9999999 : (nominator / denominator);
 }
 
@@ -1194,7 +1198,7 @@ class StockVisual extends BasePrimitive {
 
 	// Used for LinkVisual
 	getLinkMountPos([xTarget, yTarget]) {
-		// See "docs/code/mountPoints.svg" for math explanation 
+		// See "docs/code/mountPoints.svg" for math explanation
 		const [xCenter, yCenter] = this.getPos();
 		const [width, height] = this.getSize();
 		const boxSlope = safeDivision(height, width);
@@ -1202,7 +1206,7 @@ class StockVisual extends BasePrimitive {
 		let xEdge;
 		let yEdge;
 		if (isInLimits(-boxSlope, targetSlope, boxSlope)) {
-			const xSign = sign(xTarget - xCenter); // -1 if target left of box and 1 if target right of box 
+			const xSign = sign(xTarget - xCenter); // -1 if target left of box and 1 if target right of box
 			xEdge = xSign * (width / 2) + xCenter;
 			yEdge = xSign * (width / 2) * targetSlope + yCenter;
 		} else {
@@ -1294,7 +1298,7 @@ class NumberboxVisual extends BasePrimitive {
 		this.name_element.innerHTML = output;
 		this.setSelectionSizeToText();
 
-		// update color in case hide frame changes 
+		// update color in case hide frame changes
 		this.setColor(this.color);
 
 	}
@@ -1334,7 +1338,7 @@ class NumberboxVisual extends BasePrimitive {
 	}
 	nameDoubleClick() {
 		// Override this function
-		// Do nothing - otherwise double clicked is called twice 
+		// Do nothing - otherwise double clicked is called twice
 	}
 	doubleClick() {
 		this.dialog.show();
@@ -1380,7 +1384,7 @@ class VariableVisual extends BasePrimitive {
 	}
 
 	getLinkMountPos([xTarget, yTarget]) {
-		// See "docs/code/mountPoints.svg" for math explanation 
+		// See "docs/code/mountPoints.svg" for math explanation
 		const [xCenter, yCenter] = this.getPos();
 		const rTarget = distance([xCenter, yCenter], [xTarget, yTarget]);
 		const dXTarget = xTarget - xCenter;
@@ -1401,7 +1405,7 @@ class ConstantVisual extends VariableVisual {
 
 	getImage() {
 		let r = this.getRadius();
-		let rs = r - 3; // Selector radius 
+		let rs = r - 3; // Selector radius
 		return [
 			SVG.path(`M0,${r} ${r},0 0,-${r} -${r},0Z`, this.color, defaultFill, "element"),
 			SVG.text(0, 0, this.primitive.getAttribute("name"), "name_element", { "fill": this.color }),
@@ -1456,14 +1460,14 @@ class ConverterVisual extends BasePrimitive {
 	}
 
 	getLinkMountPos([xTarget, yTarget]) {
-		// See "docs/code/mountPoints.svg" for math explanation 
+		// See "docs/code/mountPoints.svg" for math explanation
 		const [xCenter, yCenter] = this.getPos();
 		const hexSlope = safeDivision(15.0, 10);  // placement of corner is at (10,15)
 		const targetSlope = safeDivision(yTarget - yCenter, xTarget - xCenter);
 		let xEdgeRel; 	// Relative x Position to center of Visual object.
-		let yEdgeRel; 	// Relative y Position to center of Visual object.  
+		let yEdgeRel; 	// Relative y Position to center of Visual object.
 		if (hexSlope < targetSlope || targetSlope < -hexSlope) {
-			const ySign = sign(yTarget - yCenter); 	// -1 if target above hexagon and 1 if target below hexagon 
+			const ySign = sign(yTarget - yCenter); 	// -1 if target above hexagon and 1 if target below hexagon
 			xEdgeRel = ySign * safeDivision(15, targetSlope);
 			yEdgeRel = ySign * 15;
 		} else if (0 < targetSlope && targetSlope < hexSlope) {
@@ -1506,7 +1510,7 @@ class TwoPointer extends BaseObject {
 		this.superClass = "TwoPointer";
 		connection_array[this.id] = this;
 
-		// anchors must exist before make graphics 
+		// anchors must exist before make graphics
 		this.createInitialAnchors(pos0, pos1);
 
 		this.makeGraphics();
@@ -1515,7 +1519,7 @@ class TwoPointer extends BaseObject {
 			primitive_mousedown(node_id, event);
 		});
 
-		// this is done so anchor is ontop 
+		// this is done so anchor is ontop
 		this.start_anchor.reloadImage();
 		this.end_anchor.reloadImage();
 	}
@@ -1580,7 +1584,7 @@ class TwoPointer extends BaseObject {
 	}
 	/** @param {AnchorType} anchorType */
 	syncAnchorToPrimitive(anchorType) {
-		// This function should sync anchor position to primitive 
+		// This function should sync anchor position to primitive
 		let primitive = findID(this.id);
 		if (!primitive) return;
 		switch (anchorType) {
@@ -1612,7 +1616,7 @@ class BaseConnection extends TwoPointer {
 	}
 
 	isAcceptableStartAttach(attachVisual) {
-		// function to decide if attachVisual is OK allowed to attach start to 
+		// function to decide if attachVisual is OK allowed to attach start to
 		return false;
 	}
 	isAcceptableEndAttach(attachVisual) {
@@ -1644,7 +1648,7 @@ class BaseConnection extends TwoPointer {
 	setEndAttach(new_end_attach) {
 		do_global_log("end_attach");
 		if (new_end_attach != null && this.getStartAttach() == new_end_attach) {
-			return; 	// Will not attach if other anchor is attached to same 
+			return; 	// Will not attach if other anchor is attached to same
 		}
 		if (new_end_attach != null && this.isAcceptableEndAttach(new_end_attach) === false) {
 			return;		// Will not attach if not acceptable attachType
@@ -1757,20 +1761,20 @@ class FlowVisual extends BaseConnection {
 
 	/**
 	 * @param {number} requestedValue x-> or 1->y
-	 * @param {string} anchorId 
-	 * @param {number} dimensionIndex 
+	 * @param {string} anchorId
+	 * @param {number} dimensionIndex
 	 * @returns {number}
 	 */
 	requestNewAnchorDimension(requestedValue, anchorId, dimensionIndex) {
 		/** @type {AnchorPoint} */
 		const anchor = object_array[anchorId];
 		let newValue = requestedValue;
-		const anchorAttach = anchor.getAnchorType() === "start" 
-			? this._start_attach 
-			: anchor.getAnchorType() == "end" 
-			? this._end_attach 
+		const anchorAttach = anchor.getAnchorType() === "start"
+			? this._start_attach
+			: anchor.getAnchorType() == "end"
+			? this._end_attach
 			: undefined;
-		// if anchor is attached limit movement 
+		// if anchor is attached limit movement
 		if (anchorAttach) {
 			// stockX or stockY
 			const stockDimension = anchorAttach.getPos()[dimensionIndex];
@@ -1778,7 +1782,7 @@ class FlowVisual extends BaseConnection {
 			const stockSpanSize = anchorAttach.getSize()[dimensionIndex];
 			newValue = clampValue(requestedValue, stockDimension - stockSpanSize / 2, stockDimension + stockSpanSize / 2);
 		} else {
-			// dont allow being closer than minDistance units to a neightbour node 
+			// dont allow being closer than minDistance units to a neightbour node
 			const minDistance = 10;
 			const prevAnchor = this.getPreviousAnchor(anchorId);
 			const nextAnchor = this.getNextAnchor(anchorId);
@@ -1787,10 +1791,10 @@ class FlowVisual extends BaseConnection {
 			requestPos[dimensionIndex] = requestedValue;
 			if ((prevAnchor && distance(requestPos, prevAnchor.getPos()) < minDistance) ||
 				(nextAnchor && distance(requestPos, nextAnchor.getPos()) < minDistance)) {
-				// set old value of anchor 
+				// set old value of anchor
 				newValue = anchor.getPos()[dimensionIndex];
 			} else {
-				// set requested value 
+				// set requested value
 				newValue = requestedValue;
 			}
 		}
@@ -1802,8 +1806,8 @@ class FlowVisual extends BaseConnection {
 	}
 
 	/**
-	 * @param {[number, number]} newPosition 
-	 * @param {string} anchorId 
+	 * @param {[number, number]} newPosition
+	 * @param {string} anchorId
 	 */
 	requestNewAnchorPos(newPosition, anchorId) {
 		let [x, y] = newPosition;
@@ -1824,7 +1828,7 @@ class FlowVisual extends BaseConnection {
 			isNextAlongX = Math.abs(nextAnchorPos[0] - x) < Math.abs(nextAnchorPos[1] - y);
 			isPreviousAlongX = !isNextAlongX;
 		} else {
-			// if more than two anchor 
+			// if more than two anchor
 			let anchors = this.getAnchors();
 			const [x1, y1] = anchors[0].getPos();
 			const [x2, y2] = anchors[1].getPos();
@@ -1835,7 +1839,7 @@ class FlowVisual extends BaseConnection {
 		}
 
 		if (prevAnchor) {
-			// Get direction of movement or direction of previous anchor 
+			// Get direction of movement or direction of previous anchor
 			if (isPreviousAlongX) {
 				x = this.requestNewAnchorDimension(x, prevAnchor.id, 0);
 			} else {
@@ -1867,7 +1871,7 @@ class FlowVisual extends BaseConnection {
 	}
 
 	getLinkMountPos([xTarget, yTarget]) {
-		// See "docs/code/mountPoints.svg" for math explanation 
+		// See "docs/code/mountPoints.svg" for math explanation
 		const [xCenter, yCenter] = this.getVariablePos();
 		const rTarget = distance([xCenter, yCenter], [xTarget, yTarget]);
 		const dXTarget = xTarget - xCenter;
@@ -1916,7 +1920,7 @@ class FlowVisual extends BaseConnection {
 	}
 
 	removeLastMiddleAnchorPoint() {
-		// set valveIndex to 0 to avoid valveplacement bug 
+		// set valveIndex to 0 to avoid valveplacement bug
 		if (this.valveIndex === this.middleAnchors.length) {
 			this.valveIndex = this.middleAnchors.length - 1;
 		}
@@ -1926,8 +1930,8 @@ class FlowVisual extends BaseConnection {
 
 
 	/**
-	 * 
-	 * @param {string} middlePointsString 
+	 *
+	 * @param {string} middlePointsString
 	 * @returns {[number, number][]}
 	 */
 	parseMiddlePoints(middlePointsString) {
@@ -2063,7 +2067,7 @@ class FlowVisual extends BaseConnection {
 	}
 
 	getDirection() {
-		// This function is used to determine which way the arrowHead should aim 
+		// This function is used to determine which way the arrowHead should aim
 		let points = this.getAnchors().map(anchor => anchor.getPos());
 		let len = points.length;
 		let p1 = points[len - 1];
@@ -2108,7 +2112,7 @@ class FlowVisual extends BaseConnection {
 			}
 		}
 		super.update();
-		// update anchors 
+		// update anchors
 		this.getAnchors().map(anchor => anchor.updatePosition());
 
 		if (this.primitive && this.icons) {
@@ -2376,7 +2380,7 @@ class TableVisual extends HtmlTwoPointer {
 		</table>`;
 
 		if (this.data.results.length === 0) {
-			// show this when empty table 
+			// show this when empty table
 			html += (`<div class="empty-plot-header">Table</div>`);
 		}
 		this.updateHTML(html);
@@ -2514,7 +2518,7 @@ class PlotVisual extends HtmlOverlayTwoPointer {
 		// Calculate minTimeSubDivision
 		let tickSubDivStep = (10 ** Math.floor(Math.log10(length))) / 10;
 
-		// Measure in pixels 
+		// Measure in pixels
 		let pxWidth = parseInt(this.chartDiv.style[dimention]) - 80;
 		let minPxStep = 50;
 		let maxSteps = Math.floor(pxWidth / minPxStep);
@@ -2670,7 +2674,7 @@ class TimePlotVisual extends PlotVisual {
 		this.serieSettingsArray = [];
 		this.serieArray = [];
 
-		// Make time series & Settings 
+		// Make time series & Settings
 		let counter = 0;
 		for (let i = 0; i < idsToDisplay.length; i++) {
 			counter++;
@@ -2717,7 +2721,7 @@ class TimePlotVisual extends PlotVisual {
 	}
 	updateChart() {
 		// Dont update chart if primitive has been deleted
-		// This check needs to be here since updateChart is updated with a timeout 
+		// This check needs to be here since updateChart is updated with a timeout
 		if (!(this.id in connection_array)) return;
 
 		if (this.serieArray == null || this.serieArray.length == 0) {
@@ -2811,7 +2815,7 @@ class TimePlotVisual extends PlotVisual {
 }
 
 
-// Hold data for ComparePlots 
+// Hold data for ComparePlots
 class DataGenerations {
 	constructor() {
 		this.reset();
@@ -2903,7 +2907,7 @@ class DataGenerations {
 			this.resultGen.pop();
 		}
 
-		// Add new 
+		// Add new
 		this.append(ids, results, lineOptions);
 	}
 	iterator() {
@@ -2964,7 +2968,7 @@ class DataGenerations {
 	*     color: string;
 	*     patern: any;
 	*     lineWidth: any;
-	*   }, 
+	*   },
 	*   index: number
 	* ) => any} fn
 	*/
@@ -2983,7 +2987,7 @@ class DataGenerations {
 	getSeriesArray(wantedIds, hasNumberedLines) {
 		let seriesArray = [];
 		let lineCount = 0;
-		// Loop generations 
+		// Loop generations
 		for (let i = 0; i < this.idGen.length; i++) {
 			let currentIds = this.idGen[i];
 			// Loop through one generation (each simulation run)
@@ -3010,7 +3014,7 @@ class DataGenerations {
 	getSeriesSettingsArray(wantedIds, hasNumberedLines, colorFromPrimitive) {
 		let seriesSettingsArray = [];
 		let countLine = 0;
-		// Loop generations 
+		// Loop generations
 		for (let i = 0; i < this.idGen.length; i++) {
 			let currentIds = this.idGen[i];
 			for (let j = 0; j < currentIds.length; j++) {
@@ -3019,7 +3023,7 @@ class DataGenerations {
 					countLine++;
 					seriesSettingsArray.push({
 						showLabel: true,
-						lineWidth: this.lineWidthGen[i][j], // change according to lineOptions here 
+						lineWidth: this.lineWidthGen[i][j], // change according to lineOptions here
 						label: `${(hasNumberedLines ? `${countLine}. ` : "")}${this.labelGen[i][j]}`,
 						linePattern: this.patternGen[i][j],
 						color: (colorFromPrimitive ? this.colorGen[i][j] : undefined),
@@ -3079,7 +3083,7 @@ class ComparePlotVisual extends PlotVisual {
 		}
 		let results = RunResults.getFilteredSelectiveIdResults(this.fetchedIds, getTimeStart(), getTimeLength(), plot_per);
 		let line_options = JSON.parse(this.primitive.getAttribute("LineOptions"));
-		// add generation 
+		// add generation
 		this.gens.append(getDisplayIds(this.primitive), results, line_options);
 	}
 	render() {
@@ -3117,7 +3121,7 @@ class ComparePlotVisual extends PlotVisual {
 	}
 	updateChart() {
 		// Dont update chart if primitive has been deleted
-		// This check needs to be here since updateChart is updated with a timeout 
+		// This check needs to be here since updateChart is updated with a timeout
 		if (!(this.id in connection_array)) return;
 
 		if (this.serieArray == null || this.serieArray.length == 0 || this.serieArray[0].length === 0) {
@@ -3316,7 +3320,7 @@ class HistoPlotVisual extends PlotVisual {
 
 		histogram.intervalWidth = (histogram.max - histogram.min) / histogram.numBars;
 		histogram.bars = [];
-		// Data points below resp. below the lower and upper boundary 
+		// Data points below resp. below the lower and upper boundary
 		histogram.below_data = [];
 		histogram.above_data = [];
 
@@ -3380,7 +3384,7 @@ class HistoPlotVisual extends PlotVisual {
 			this.labels.push("");
 			this.ticks.push(bar.lowerLimit.toFixed(tickDecimal));
 
-			// (2) label here 
+			// (2) label here
 			serie.push([(bar.lowerLimit + bar.upperLimit) / 2, barValue]);
 			this.labels.push(usePDF ? barValue.toFixed(3) : barValue.toString());
 
@@ -3415,7 +3419,7 @@ class HistoPlotVisual extends PlotVisual {
 	}
 	updateChart() {
 		// Dont update chart if primitive has been deleted
-		// This check needs to be here since updateChart is updated with a timeout 
+		// This check needs to be here since updateChart is updated with a timeout
 		if (!(this.id in connection_array)) return;
 
 		if (this.serieArray == null) {
@@ -3465,7 +3469,7 @@ class HistoPlotVisual extends PlotVisual {
 						// axes.xaxis.ticks attribute must be removed for this
 						// formatString: '<%5p≤'
 					},
-					label: "&nbsp;", // make sure there is space for below/above labels 
+					label: "&nbsp;", // make sure there is space for below/above labels
 					pad: 0,
 					ticks: tempTick
 				},
@@ -3661,7 +3665,7 @@ class XyPlotVisual extends PlotVisual {
 
 	updateChart() {
 		// Dont update chart if primitive has been deleted
-		// This check needs to be here since updateChart is updated with a timeout 
+		// This check needs to be here since updateChart is updated with a timeout
 		if (!(this.id in connection_array)) return;
 
 		if (this.serieArray == null) {
@@ -3764,7 +3768,7 @@ class LineVisual extends TwoPointer {
 		this.arrowHeadStart.setTemplatePoints(arrowPathPoints);
 		this.arrowHeadEnd.setTemplatePoints(arrowPathPoints);
 
-		this.group = SVG.append(SVG.svgElement, 
+		this.group = SVG.append(SVG.svgElement,
 			SVG.group([this.line, this.arrowHeadStart, this.arrowHeadEnd, this.clickLine])
 		);
 		this.group.setAttribute("node_id", this.id);
@@ -3947,7 +3951,7 @@ class LinkVisual extends BaseConnection {
 				}
 				return false;
 			});
-			// only allow converter to have one ingoing link 
+			// only allow converter to have one ingoing link
 			return linkedPrims.length < 1;
 		}
 		return okAttachTypes.includes(attachVisual.getType()) && attachVisual.is_ghost !== true;
@@ -3979,13 +3983,13 @@ class LinkVisual extends BaseConnection {
 	}
 
 	clean() {
-		// remove end_attach to make sure end_attach value error is updated 
+		// remove end_attach to make sure end_attach value error is updated
 		this.setEndAttach(null);
 		super.clean();
 	}
 	clearImage() {
 		super.clearImage();
-		// curve must be removed seperatly since it is not part of any group 
+		// curve must be removed seperatly since it is not part of any group
 		this.curve.remove();
 	}
 
@@ -4013,15 +4017,15 @@ class LinkVisual extends BaseConnection {
 		SVG.translate(this.arrowHead, x4, y4);
 
 		this.click_area = SVG.curve("twoway",x1, y1, x2, y2, x3, y3, x4, y4, { "pointer-events": "all", "stroke": "transparent", "stroke-width": "10" });
-		this.curve = SVG.append(SVG.linkLayer, 
+		this.curve = SVG.append(SVG.linkLayer,
 			SVG.curve("oneway", x1, y1, x2, y2, x3, y3, x4, y4, { "stroke": "black", "stroke-width": "1" })
 		);
 		this.click_area.draggable = false;
 		this.curve.draggable = false;
 
 		// curve is not included in group since it is one-way and will therefore span an area
-		// The area will be clickable if included in the group 
-		this.group = SVG.append(SVG.linkLayer, 
+		// The area will be clickable if included in the group
+		this.group = SVG.append(SVG.linkLayer,
 			SVG.group([this.click_area, this.arrowHead])
 		);
 		this.group.setAttribute("node_id", this.id);
@@ -4150,7 +4154,7 @@ class LinkVisual extends BaseConnection {
 			}
 		}
 		this.keepRelativeHandlePositions();
-		// update anchors 
+		// update anchors
 		this.getAnchors().map(anchor => anchor.updatePosition());
 		this.updateGraphics();
 	}
@@ -4183,7 +4187,7 @@ class BaseTool {
 		// Is triggered when mouse goes up for this tool
 	}
 	static rightMouseDown(x, y) {
-		// Is triggered when right mouse is clicked for this tool 
+		// Is triggered when right mouse is clicked for this tool
 	}
 	static enterTool(mouseButton) {
 		// Is triggered when the tool is selected
@@ -4387,7 +4391,7 @@ class StraightenLinkTool extends BaseTool {
 class GhostTool extends OnePointCreateTool {
 	static init() {
 		this.id_to_ghost = null;
-		this.ghostable_primitives = ["stock", "variable", "constant", "converter"];
+		this.ghostable_primitives = ["stock", "variable", "constant", "converter", "flow"];
 	}
 	static create(x, y) {
 		let source = findID(this.id_to_ghost);
@@ -4399,9 +4403,19 @@ class GhostTool extends OnePointCreateTool {
 	}
 	static enterTool() {
 		let selectedIds = get_selected_ids();
-		// filter out non root object, e.g. anchors 
+		// filter out non root object, e.g. anchors
 		let selectedObjects = selectedIds.filter(id => !id.includes(".")).map(get_object);
-		if (selectedObjects.length != 1) {
+		if(selectedObjects.length === 0) {
+		  const ghostedId = prompt("Name of the variable to ghost:")
+			const object = Object.values(get_all_objects()).find(o => o.primitive.value.getAttribute("name") === ghostedId)
+			if(object) {
+			  selectedObjects = [object]
+			} else {
+			  xAlert("No variable with that name exists.")
+				ToolBox.setTool("mouse")
+				return
+			}
+		} if (selectedObjects.length != 1) {
 			xAlert("You must first select exactly one primitive to ghost");
 			ToolBox.setTool("mouse");
 			return;
@@ -4472,10 +4486,10 @@ function get_only_selected_anchor_id() {
 		return { "parent_id": get_parent_id(keys[0]), "child_id": keys[0] };
 	} else if (keys.length === 2) {
 		if (get_object(keys[0]).getType() === "dummy_anchor" && get_object(keys[1]).getType() === "dummy_anchor") {
-			// both anchors are dummies 
+			// both anchors are dummies
 			return null;
 		} else if (get_parent_id(keys[0]) === get_parent_id(keys[1])) {
-			// one anchor and parent object selected 
+			// one anchor and parent object selected
 			let parent_id = null;
 			let child_id = null;
 			if (get_parent_id(keys[0]) === keys[0]) {
@@ -4492,7 +4506,7 @@ function get_only_selected_anchor_id() {
 }
 
 function get_single_primitive_id_selected() {
-	// will give object { "parent_id": ..., "children_ids": [...] } or null if more objects selected 
+	// will give object { "parent_id": ..., "children_ids": [...] } or null if more objects selected
 	let selection = get_selected_objects();
 	let keys = [];
 	for (let key in selection) {
@@ -4532,10 +4546,10 @@ class MouseTool extends BaseTool {
 		}
 
 		let selected_anchor = get_only_selected_anchor_id();
-		// Only one anchor is selected AND that that anchor has attaching capabilities 
+		// Only one anchor is selected AND that that anchor has attaching capabilities
 		if (selected_anchor && connection_array[selected_anchor.parent_id].getStartAttach) {
 			let parent = connection_array[selected_anchor.parent_id];
-			// Detach anchor 
+			// Detach anchor
 			switch (object_array[selected_anchor.child_id].getAnchorType()) {
 				case "start":
 					parent.setStartAttach(null);
@@ -4572,7 +4586,7 @@ class MouseTool extends BaseTool {
 			tool.mouseMoveSingleAnchor(x, y, shiftKey, only_selected_anchor["child_id"]);
 			parent.update();
 		} else if (only_selected_link) {
-			// special exeption for links of links is being draged directly 
+			// special exeption for links of links is being draged directly
 			LinkTool.mouseRelativeMoveSingleAnchor(diff_x, diff_y, shiftKey, only_selected_link["parent_id"] + ".b1_anchor");
 			LinkTool.mouseRelativeMoveSingleAnchor(diff_x, diff_y, shiftKey, only_selected_link["parent_id"] + ".b2_anchor");
 			let parent = connection_array[only_selected_link["parent_id"]];
@@ -4599,7 +4613,7 @@ class MouseTool extends BaseTool {
 		}
 		if (objectMoved) {
 			// TwoPointer objects depent on OnePointer object (e.g. AnchorPoint, Stock, Auxiliary etc.)
-			// Therefore they must be updated seprately 
+			// Therefore they must be updated seprately
 			let ids = [];
 			for (let key in move_objects) {
 				ids.push(move_objects[key].id);
@@ -4646,14 +4660,14 @@ class TwoPointerTool extends BaseTool {
 		return "none";
 	}
 	static createTwoPointer(x, y, name) {
-		// Override this and do a for example: 
+		// Override this and do a for example:
 		// Example: this.primitive = createConnector(name, "Flow", null,null);
 		// Example: this.current_connection = new FlowVisual(this.primitive.id,this.getType(),[x,y]);
 	}
 	static leftMouseDown(x, y) {
 		unselect_all();
 
-		// Looks for element under mouse. 
+		// Looks for element under mouse.
 		let start_element = find_element_under(x, y);
 
 		// Finds free name for primitive. e.g. "stock1", "stock2", "variable1" etc. (Visible to the user)
@@ -4667,7 +4681,7 @@ class TwoPointerTool extends BaseTool {
 		}
 		this.current_connection.setName(primitive_name);
 
-		// make sure start anchor is synced with primitive 
+		// make sure start anchor is synced with primitive
 		this.current_connection.syncAnchorToPrimitive("start");
 	}
 	static mouseMove(x, y, shiftKey) {
@@ -4680,7 +4694,7 @@ class TwoPointerTool extends BaseTool {
 		this.mouseMoveSingleAnchor(x, y, shiftKey, move_node_id);
 	}
 	static mouseMoveSingleAnchor(x, y, shiftKey, node_id) {
-		// Function used both during creation and later moving of anchor point 
+		// Function used both during creation and later moving of anchor point
 		let moveObject = get_object(node_id);
 		let parent = get_parent(moveObject);
 		if (shiftKey) {
@@ -4719,8 +4733,8 @@ class TwoPointerTool extends BaseTool {
 class FlowTool extends TwoPointerTool {
 	static init() {
 		super.init();
-		// Is to prevent error if rightdown happens before leftdown 
-		// can be either "x" or "y" 
+		// Is to prevent error if rightdown happens before leftdown
+		// can be either "x" or "y"
 		this.direction = "";
 	}
 	static leftMouseDown(x, y) {
@@ -4730,22 +4744,22 @@ class FlowTool extends TwoPointerTool {
 		if (this.current_connection) {
 			this.mouseMoveSingleAnchor(x, y, false, this.current_connection.end_anchor.id);
 		} else {
-			// First time moving mouse 
+			// First time moving mouse
 			this.firstLeftMouseMove(x, y);
 		}
 	}
 	static firstLeftMouseMove(x, y) {
-		// does not create anything until the first leftMouseMove have been triggered 
+		// does not create anything until the first leftMouseMove have been triggered
 		super.leftMouseDown(x, y);
 	}
 	static mouseMoveSingleAnchor(x, y, shiftKey, anchor_id) {
-		// Function used both during creation and later moving of anchor point 
+		// Function used both during creation and later moving of anchor point
 		let mainAnchor = get_object(anchor_id);
 		let parent = get_parent(mainAnchor);
 
 		parent.requestNewAnchorPos([x, y], anchor_id);
 		parent.update();
-		// update connecting links 
+		// update connecting links
 		find_connections(parent).map(conn => conn.update());
 	}
 	static createTwoPointer(x, y, name) {
@@ -4772,7 +4786,7 @@ class FlowTool extends TwoPointerTool {
 							parent.removeLastMiddleAnchorPoint();
 						}
 					} else {
-						// Add middle anchor 
+						// Add middle anchor
 						parent.createMiddleAnchorPoint(x, y);
 						unselect_all_other_anchors(parent.id, child.id);
 					}
@@ -4864,7 +4878,7 @@ class LineTool extends TwoPointerTool {
 		return "line";
 	}
 	static mouseMoveSingleAnchor(x, y, shiftKey, node_id) {
-		// Function used both during creation and later moving of anchor point 
+		// Function used both during creation and later moving of anchor point
 		let moveObject = get_object(node_id);
 		let parent = get_parent(moveObject);
 		if (shiftKey) {
@@ -4886,7 +4900,7 @@ class LineTool extends TwoPointerTool {
 					moveObject.setPos([x, oppositeY]);
 				}
 			} else {
-				// place at 45 degree angle 
+				// place at 45 degree angle
 				let signX = Math.sign(sideX);
 				let signY = Math.sign(sideY);
 				moveObject.setPos([oppositeX + signX * shortSideLength, oppositeY + signY * shortSideLength]);
@@ -5041,7 +5055,7 @@ class LinkTool extends TwoPointerTool {
 			attach_anchor(anchor);
 			parent.update();
 			if (parent.getStartAttach() === null || parent.getEndAttach() === null) {
-				// delete link is not attached at both ends 
+				// delete link is not attached at both ends
 				delete_selected_objects();
 			}
 		} else if (anchor.getAnchorType() === "bezier1" || anchor.getAnchorType() === "bezier2") {
@@ -5101,6 +5115,7 @@ function attach_anchor(anchor) {
 }
 
 var currentTool = MouseTool;
+let lastTool = undefined;
 
 class CoordRect {
 	constructor() {
@@ -5143,9 +5158,9 @@ class RectSelector {
 		RectSelector.coordRect.element.setAttribute("stroke-dasharray", "4 4");
 		RectSelector.coordRect.setVisible(false);
 	}
-	/** 
-	 * @param {number} x  
-	 * @param {number} y 
+	/**
+	 * @param {number} x
+	 * @param {number} y
 	*/
 	static start(x, y) {
 		unselect_all();
@@ -5156,9 +5171,9 @@ class RectSelector {
 		RectSelector.coordRect.y2 = y;
 		RectSelector.coordRect.update();
 	}
-	/** 
-	 * @param {number} x  
-	 * @param {number} y 
+	/**
+	 * @param {number} x
+	 * @param {number} y
 	*/
 	static move(x, y) {
 		RectSelector.coordRect.x2 = x;
@@ -5296,7 +5311,7 @@ function delete_connection(key) {
 	connection_array[key].group.remove();
 	delete connection_array[key];
 
-	// Must be done last otherwise the anchors will respawn	
+	// Must be done last otherwise the anchors will respawn
 	delete_object(start_anchor.id);
 	delete_object(end_anchor.id);
 	delete_object(auxiliary.id);
@@ -5345,10 +5360,10 @@ function primitive_mousedown(node_id, event, new_primitive) {
 	}
 }
 
-// only updates diagrams, tables, and XyPlots if needed 
+// only updates diagrams, tables, and XyPlots if needed
 function update_relevant_objects(ids) {
 	for (let key in object_array) {
-		// dont update dummy_anchors, the twopointer parent of the dummy anchor has responsibility of the dummy_anchors 
+		// dont update dummy_anchors, the twopointer parent of the dummy anchor has responsibility of the dummy_anchors
 		if (object_array[key].type !== "dummy_anchor") {
 			object_array[key].update();
 		}
@@ -5356,7 +5371,7 @@ function update_relevant_objects(ids) {
 	update_twopointer_objects(ids);
 }
 
-// only updates diagrams, tables, and XyPlots if needed 
+// only updates diagrams, tables, and XyPlots if needed
 function update_twopointer_objects(ids) {
 	for (let key in connection_array) {
 		let onlyIfRelevant = ["timeplot", "xyplot", "compareplot", "histoplot", "table"];
@@ -5553,7 +5568,7 @@ function mouseDownHandler(event) {
 			mouse.isLeftDown = true;
 			currentTool.leftMouseDown(x, y);
 			break;
-		case mouse.middle: 
+		case mouse.middle:
 			event.preventDefault()
 			MousePan.start(x, y)
 			break;
@@ -5578,7 +5593,7 @@ function mouseMoveHandler(event) {
 		event.preventDefault()
 		MousePan.move(x, y)
 	}
-	
+
 }
 function mouseUpHandler(event) {
 	if (event.which === mouse.left) {
@@ -5594,7 +5609,7 @@ function mouseUpHandler(event) {
 		currentTool.leftMouseUp(x, y, event.shiftKey);
 		mouse.isLeftDown = false;
 		InfoBar.update();
-		History.storeUndoState();		
+		History.storeUndoState();
 	} else if (event.which == mouse.middle) {
 		event.preventDefault()
 		MousePan.end()
@@ -5683,7 +5698,23 @@ class ToolBox {
 
 			currentTool.leaveTool();
 			currentTool = this.tools[toolName];
-			currentTool.enterTool(whichMouseButton);
+      currentTool.enterTool(whichMouseButton);
+      if ([
+        "stock",
+  			"converter",
+  			"variable",
+  			"constant",
+  			"flow",
+  			"link",
+  			"ghost",
+  			"text",
+  			"rectangle",
+  			"ellipse",
+  			"line",
+  			"table",
+  			"timeplot",
+  			"compareplot",
+        ].includes(toolName)) lastTool = toolName;
 		} else {
 			errorPopUp("The tool " + toolName + " does not exist");
 		}
@@ -5809,8 +5840,9 @@ $(window).load(function () {
 		if (jqDialog.blockingDialogOpen) {
 			return;
 		}
-		if (event.key == "Delete") {
-			DeleteTool.enterTool();
+		if (event.key == "Delete" || event.key === "Backspace") {
+		  if(get_selected_ids().length > 0)
+				DeleteTool.enterTool();
 		}
 		let moveSize = 2;
 		if (event.shiftKey) {
@@ -5831,8 +5863,8 @@ $(window).load(function () {
 		if (event.key == "ArrowDown") {
 			MouseTool.mouseMove(mouse.downX, mouse.downY + moveSize, false);
 			event.preventDefault();
-		}
-		if (event.ctrlKey) {
+    }
+		if ((!isMac && event.ctrlKey) || (isMac && event.metaKey)) {
 			if (event.key == "1" || event.key.toLowerCase() == "r") {
 				event.preventDefault();
 				RunTool.enterTool();
@@ -5874,6 +5906,31 @@ $(window).load(function () {
 				// Clipboard.paste();
 				// History.storeUndoState();
 			}
+		} else {
+  		if (event.key === "s") {
+        ToolBox.setTool("stock")
+      }
+      if (event.key === "a") {
+        ToolBox.setTool("variable")
+      }
+      if (event.key === "f") {
+        ToolBox.setTool("flow")
+      }
+      if (event.key === "c") {
+        ToolBox.setTool("converter")
+      }
+      if (event.key === "p") {
+        ToolBox.setTool("constant")
+      }
+      if (event.key === "g") {
+        ToolBox.setTool("ghost")
+      }
+      if (event.key === "l") {
+        ToolBox.setTool("link")
+      }
+      if (event.key === "z") {
+        ToolBox.setTool(lastTool)
+      }
 		}
 		environment.keyDown(event);
 	});
@@ -6169,12 +6226,12 @@ var blankGraphTemplate = `<mxGraphModel>
 loadXML(blankGraphTemplate);
 
 function addMissingPrimitiveAttributes(prim) {
-	// default primitive to get missing attributes 
+	// default primitive to get missing attributes
 	let primitive_type = prim.value.nodeName.toLowerCase();
 	let default_primitive = primitiveBank[primitive_type];
 	if (default_primitive) {
 		for (let attr of default_primitive.attributes) {
-			// check fow missing attributes 
+			// check fow missing attributes
 			if (prim.getAttribute(attr.name) === null) {
 				prim.setAttribute(attr.name, attr.value);
 			}
@@ -6357,6 +6414,9 @@ function syncVisual(tprimitive) {
 					case "Stock":
 						visualObject = new StockVisual(tprimitive.id, "stock", position, { "is_ghost": true });
 						break;
+					case "Flow":
+						visualObject = new VariableVisual(tprimitive.id, "variable", position, { "is_ghost": true });
+						break;
 				}
 				set_name(tprimitive.id, tprimitive.getAttribute("name"));
 
@@ -6444,7 +6504,7 @@ function syncVisual(tprimitive) {
 					connection.resetBezierPoints();
 				}
 				for (let i = 0; i < 8; i++) {
-					// the anchor and the handle are co-dependent 
+					// the anchor and the handle are co-dependent
 					// This means that moving the handle moves the anchor which moves the handle ... etc.
 					// this continues until a stable position is reached.
 					// To get around this the Link gets calculated a few times to reach a stable position.
@@ -6540,7 +6600,7 @@ function setColorToSelection(color) {
 function printDiagram() {
 	unselect_all();
 	InfoBar.update();
-	// Write filename and date into editor-footer 
+	// Write filename and date into editor-footer
 	let fileName = fileManager.fileName;
 
 	let d = new Date();
@@ -6627,7 +6687,7 @@ class RunResults {
 		// Get list of primitives that we want to observe from the model
 		let primitive_array = getPrimitiveList();
 
-		// Create list of ids, id0 is reserved for time 
+		// Create list of ids, id0 is reserved for time
 		this.varIdList = [0].concat(getID(primitive_array)).map(Number);
 
 		// Create list of names
@@ -6699,7 +6759,7 @@ class RunResults {
 			// remove name
 			this.varnameList.splice(index, 1);
 
-			// remove data 
+			// remove data
 			this.results.map(row => {
 				row.splice(index, 1);
 			});
@@ -6765,7 +6825,7 @@ class RunResults {
 				// Run finished
 
 				// On especially longer simulation onSuccess is called multible times
-				// This is a hack to get around that 
+				// This is a hack to get around that
 				if (this.simulationDone === false) {
 					this.simulationDone = true;
 					// In some cases onPause was never executed and in such cases we need to do store Result directly on res
@@ -7199,7 +7259,7 @@ jqDialog.init();
 
 
 
-/** 
+/**
  * @typedef {Object} Primitive
  * @property {string} type - Type of primitive, e.g. "Stock", "Flow", "Variable", "Converter", "Ghost", "Link"
  * @property {string} id - Unique identifier for the primitive
@@ -7312,7 +7372,7 @@ function yesNoCancelAlert(message, closeHandler) {
 }
 
 function saveChangedAlert(continueHandler) {
-	// If we have no unsaved changes we just continue directly	
+	// If we have no unsaved changes we just continue directly
 	if (!History.unsavedChanges) {
 		continueHandler();
 		return;
@@ -7360,7 +7420,7 @@ class PlotPeriodComponent extends HtmlComponent {
 			<table class="modern-table zebra" title="Distance between points in time units. \n (Should not be less then Time Step)" >
 				<tr>
 					<th>
-						Plot Period: 
+						Plot Period:
 					</th>
 					<td style="padding:1px;">
 						<input style="" class="plot-per-field limit-input enter-apply" type="number" value="${plot_per}" ${auto_plot_per ? "disabled" : ""}/>
@@ -7494,8 +7554,8 @@ class PrimitiveSelectorComponent extends HtmlComponent {
 			const isRandom = hasRandomFunction(getValue(primitive))
 			return `<tr>
 					<td style="padding: 0;">
-						<button 
-							class="primitive-remove-button enter-apply" 
+						<button
+							class="primitive-remove-button enter-apply"
 							data-id="${id}">
 							-
 						</button>
@@ -7550,15 +7610,15 @@ class PrimitiveSelectorComponent extends HtmlComponent {
 		let htmlContent = "";
 		if (results.length > 0) {
 			let limitReached = this.displayLimit && this.displayIds.length >= this.displayLimit;
-			htmlContent = (`<table class="primitive-selector"> 
+			htmlContent = (`<table class="primitive-selector">
 				${results.map(p => {
 				const type = getTypeNew(p).toLowerCase()
 				const color = p?.getAttribute("Color")
 				const isRandom = hasRandomFunction(getValue(p));
 				return `<tr>
 						<td style="padding: 0;">
-							<button class="primitive-add-button enter-apply" data-id="${getID(p)}" 
-								${limitReached ? "disabled" : ""} 
+							<button class="primitive-add-button enter-apply" data-id="${getID(p)}"
+								${limitReached ? "disabled" : ""}
 								${limitReached ? `title="Max ${this.displayLimit} primitives selected"` : ""}>
 								+
 							</button>
@@ -7600,7 +7660,7 @@ class PrimitiveSelectorComponent extends HtmlComponent {
 			<div class="vertical-space"></div>
 			<div class="center-vertically-container">
 				<img style="height: 22px; padding: 0px 5px;" src="graphics/exchange.svg"/>
-				<input type="text" class="primitive-filter-input enter-apply" placeholder="Find Primitive ..." style="height: 18px; width: 220px;"> 
+				<input type="text" class="primitive-filter-input enter-apply" placeholder="Find Primitive ..." style="height: 18px; width: 220px;">
 			</div>
 			<div class="excluded-list-div" style="max-height: 300px; overflow: auto; border: 1px solid black;"></div>
 		`);
@@ -7616,7 +7676,7 @@ class PrimitiveSelectorComponent extends HtmlComponent {
 		let prims = this.parent.getAcceptedPrimitiveList();
 		let results = [];
 
-		let compareByTypeAndName = (a, b) => { // sort by type and by alphabetical 
+		let compareByTypeAndName = (a, b) => { // sort by type and by alphabetical
 			let orderDiff = order.indexOf(getTypeNew(a)) - order.indexOf(getTypeNew(b))
 			if (orderDiff !== 0) {
 				return orderDiff;
@@ -7625,17 +7685,17 @@ class PrimitiveSelectorComponent extends HtmlComponent {
 			}
 		}
 
-		let compareBySearchWord = (a, b) => { // sort by what search word appears first 
+		let compareBySearchWord = (a, b) => { // sort by what search word appears first
 			let charMatch = getName(a).toLowerCase().indexOf(searchLowercase) - getName(b).toLowerCase().indexOf(searchLowercase);
 			if (charMatch !== 0) {
 				return charMatch;
-			} else { // else sort alphabetically 
+			} else { // else sort alphabetically
 				return getName(a).toLowerCase() > getName(b).toLowerCase() ? 1 : -1;
 			}
 		}
 
 		let order = ["Stock", "Flow", "Variable", "Constant", "Converter"];
-		results = prims.filter(p => // filter already added primitives 
+		results = prims.filter(p => // filter already added primitives
 			this.displayIds.includes(getID(p)) === false
 		).filter(p => // filter search
 			getName(p).toLowerCase().includes(searchLowercase)
@@ -7830,7 +7890,7 @@ class AxisLimitsComponent extends HtmlComponent {
 			let limit = axisLimits[axis.key];
 			this.find(`.${axis.key}-checkbox`).change(event => {
 				let checkboxAuto = $(event.target).prop("checked");
-				// Disable/enable input boxes 
+				// Disable/enable input boxes
 				this.find(`.${axis.key}-min-field, .${axis.key}-max-field`).prop("disabled", checkboxAuto);
 
 				// Set input values
@@ -7898,8 +7958,8 @@ class TimePlotSelectorComponent extends PrimitiveSelectorComponent {
 			const isRandom = hasRandomFunction(getValue(primitive));
 			return (`<tr>
 					<td style="padding: 0;">
-						<button 
-							class="primitive-remove-button enter-apply" 
+						<button
+							class="primitive-remove-button enter-apply"
 							data-id="${id}">
 							-
 						</button>
@@ -7998,7 +8058,7 @@ class GenerationsComponent extends HtmlComponent {
 	/** @type {DataGenerations} */
 	gens;
 	/**
-	 * @param {DataGenerations} gens 
+	 * @param {DataGenerations} gens
 	 */
 	constructor(parent, gens) {
 		super(parent)
@@ -8115,7 +8175,7 @@ class HistogramOptionsComponent extends HtmlComponent {
 	}
 	render() {
 		return (`<table class="modern-table zebra">
-			<tr>	
+			<tr>
 				${this.tableData.headers.map(header => `<th>${header}</th>`).join("")}
 			</tr>
 			${this.tableData.rows.map(row => {
@@ -8154,7 +8214,7 @@ class HistogramOptionsComponent extends HtmlComponent {
 
 class RadioCompontent extends HtmlComponent {
 	/**
-	 * @param {{header: string, name: string, attribute, options: [{value: string, label: string}]}} data 
+	 * @param {{header: string, name: string, attribute, options: [{value: string, label: string}]}} data
 	 */
 	constructor(parent, data) {
 		super(parent);
@@ -8222,8 +8282,8 @@ class XySelectorComponent extends PrimitiveSelectorComponent {
 					const isRandom = hasRandomFunction(getValue(primitive))
 					return `<tr>
 						<td style="padding: 0;">
-							<button 
-								class="primitive-remove-button enter-apply" 
+							<button
+								class="primitive-remove-button enter-apply"
 								data-id="${id}">
 								-
 							</button>
@@ -8466,7 +8526,7 @@ class ArithmeticPrecisionComponent extends HtmlComponent {
 					</td>
 				</tr>`);
 		}).join("")}
-			
+
 		</table>
 		<div class="num-len-warn-div"></div>`);
 	}
@@ -8529,8 +8589,8 @@ class RoundToZeroComponent extends HtmlComponent {
 			<table class="modern-table zebra">
 				<tr>
 					<td>
-						<input class="round-to-zero-checkbox enter-apply" type="checkbox" ${checkedHtml(roundToZero)} /> 
-						Show <b>0</b> when <i>abs(value) &lt;</i> 
+						<input class="round-to-zero-checkbox enter-apply" type="checkbox" ${checkedHtml(roundToZero)} />
+						Show <b>0</b> when <i>abs(value) &lt;</i>
 						<input class="round-to-zero-field enter-apply" type="number" value="${roundToZeroAtValue}" ${disabled}/>
 					</td>
 				</tr>
@@ -8549,8 +8609,8 @@ class RoundToZeroComponent extends HtmlComponent {
 
 		// set default button listener
 		this.find(".default-round-to-zero-button").click(() => {
-			// fetches default for numberbox, but this is also used for table 
-			// Should be fixes so it fetches default for the type of object the dialog belongs to  
+			// fetches default for numberbox, but this is also used for table
+			// Should be fixes so it fetches default for the type of object the dialog belongs to
 			this.setRoundToZero(getDefaultAttributeValue("numberbox", "RoundToZero") === "true");
 			roundToZeroField.val(getDefaultAttributeValue("numberbox", "RoundToZeroAtValue"));
 			this.checkValidRoundAtZeroAtField();
@@ -8635,7 +8695,7 @@ class TableDialog extends DisplayDialog {
 
 class NewModelDialog extends jqDialog {
 	// This dialog is not used.
-	// At start TimeUnitDialog is used instead 
+	// At start TimeUnitDialog is used instead
 	constructor() {
 		super();
 		this.setTitle("New model");
@@ -9292,7 +9352,7 @@ class ConverterDialog extends jqDialog {
 					xAlert(`The name <b>${newName}</b> is already a taken name. \nName was not changed.`);
 				}
 			}
-			// Update visual object to add/remove "?" icon 
+			// Update visual object to add/remove "?" icon
 			let visualObject = object_array[this.primitive.id];
 			if (visualObject) {
 				visualObject.update();
@@ -9365,7 +9425,7 @@ class AboutDialog extends CloseDialog {
 			StochSD is an open source program based on the <a target="_blank" href="http://insightmaker.com">Insight Maker engine</a> (insightmaker.com) developed by Scott Fortmann-Roe. However, the graphic package of Insight Maker is replaced to make StochSD open for use as well as modifications and extensions. The file handling system is also rewritten. Finally, tools for optimisation, sensitivity analysis and statistical analysis are supplemented.<br/>
 			<br/>
 			StochSD was developed by Leif Gustafsson, Erik Gustafsson and Magnus Gustafsson, Uppsala University, Uppsala, Sweden.<br/>
-			Mail: leif.gunnar.gustafsson@gmail.com 
+			Mail: leif.gunnar.gustafsson@gmail.com
 			</div>
 		`);
 	}
@@ -9396,13 +9456,13 @@ class FullPotentialCSSDialog extends CloseDialog {
 			<li>Distribution of the sojourn (stay) times in a stage are obtained by modelling the stage by a structure of compartments in series and/or parallel. (Stage-to-compartment expansion).</li>
 			<li>
 				Uncertainties of different types must realise the description in the well-defined conceptual model. This applies to:<br/>
-				&bull; Model structure &bull; Initial values &bull; Transitions &bull; Environmental influences &bull; Signals 
+				&bull; Model structure &bull; Initial values &bull; Transitions &bull; Environmental influences &bull; Signals
 			</li>
 		</ol>
 		<p>Classical CSS cannot fulfil these conditions – but Full Potential CSS can! If one of several of these issues is part of the conceptul model, Full Potential CSS provides the way to correctly implement them in a CSS model.</p>
 		<p>To do so Full Potential CSS requires devices to model discrete/continuous/combined processes and to handle the different types of uncertainties as well as multiple simulations followed by a statistical analysis and presentation of the results in statistical terms.</p>
 		<p style="display: flex; flex-direction: row;">
-			<img src="graphics/stochsd_high.png" style="width: 32px; height: 32px; position: inline; margin-right: 8px;"> 
+			<img src="graphics/stochsd_high.png" style="width: 32px; height: 32px; position: inline; margin-right: 8px;">
 			<span><i style="display: flex; flex-direction: column; justify-content: center; height: 100%;">StochSD is a package that can accomplish this.</i></span>
 		</p>
 		<p>
@@ -9743,7 +9803,7 @@ class DefinitionEditor extends jqDialog {
 				} else if (newName === "") {
 					$(this.dialogContent).find(".name-warning-div").html(warningHtml(`Name cannot be empty.`));
 				} else if (!validToolVarName) {
-					// not allowed by StatRes and Other tools 
+					// not allowed by StatRes and Other tools
 					$(this.dialogContent).find(".name-warning-div").html(warningHtml(`
 						Allowed characters are: <br/>
 						<b>A-Z</b>, <b>a-z</b>, <b>_</b> (anywhere)
@@ -9819,7 +9879,7 @@ class DefinitionEditor extends jqDialog {
 
 		$(this.dialogContent).find(".click-function").click((event) => this.templateClick(event));
 
-		/* Positioning 
+		/* Positioning
 			This is done to avoid blocking the button with the tooltip
 			https://api.jqueryui.com/position/
 		*/
@@ -9914,7 +9974,7 @@ class DefinitionEditor extends jqDialog {
 
 		$(this.referenceDiv).find(".click-function").click((event) => this.templateClick(event));
 
-		// refresh in order to show cursor 
+		// refresh in order to show cursor
 		this.cmValueField.refresh();
 
 		if (this.defaultFocusSelector) {
@@ -10078,7 +10138,7 @@ class MacroDialog extends jqDialog {
 			<div style="padding:0; margin-left: 1em;">
 				${this.renderHelpButtonHtml("macro-help")}
 				<table class="modern-table zebra" title="SetRandSeed makes stochstics simulations reproducable." style="margin-top: 1em;">
-					<tr>	
+					<tr>
 						<td style="padding:1px;">
 							Seed = <input class="seed-field" type="number" />
 						</td>

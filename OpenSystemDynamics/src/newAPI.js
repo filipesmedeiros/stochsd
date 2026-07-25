@@ -35,7 +35,7 @@ function centerCoordinates(coordinateList) {
 
 function positionDifference(pos1, pos2) {
 	return [pos1[0]-pos2[0],pos1[1]-pos2[1]];
-} 
+}
 function positionSum(pos1, pos2) {
 	return [pos1[0]+pos2[0],pos1[1]+pos2[1]];
 }
@@ -57,7 +57,7 @@ var makeGhost = function(item, pos=null) {
 	dpopup("Makeing ghost");
 	//~ var provided = item.value;
 	//~ item = provided ? item : graph.getSelectionCell();
-	
+
 	if(graph instanceof SimpleNode){
 		var parent = graph.children[0].children[0];
 		var t = "ghost"; // type.toLowerCase();
@@ -65,9 +65,9 @@ var makeGhost = function(item, pos=null) {
 		last_vertex=vertex;
 		//~ vertex.value.children.push({"children":[{"attributes"}]
 		//vertex.value.children[0].children[0].attributes
-		
+
 		// This poisition will be overriden later, but we need a position to place it
-		
+
 		var sourceType=getType(findID(item.id)).toLowerCase();
 		var size=type_size[sourceType];
 		var position;
@@ -81,13 +81,13 @@ var makeGhost = function(item, pos=null) {
 		setPosition(vertex,position);
 		vertex.setAttribute("Source", item.id);
 		vertex.setAttribute("name", item.getAttribute("name"));
-		
+
 		vertex.value.setAttribute("Source", item.id);
 		vertex.value.setAttribute("name", item.getAttribute("name"));
-		
+
 		clearPrimitiveCache();
 		//~ var new_primitive = new primitive_class(vertex.id,"stock",position[0],position[1]);
-		
+
 		return vertex;
 	} else {
 	 // This code is not tested out. Rellay on the old makeGhost in InsightEditor.js
@@ -144,9 +144,9 @@ function propogateGhosts(cell) {
 }
 /*
 	Method isNameFree
-	
-	Checks all other primitives if a name is taken. 
-	Returns false if taken, and true if free 
+
+	Checks all other primitives if a name is taken.
+	Returns false if taken, and true if free
 
 */
 function isNameFree(newName, exepctionId) {
@@ -163,10 +163,10 @@ function isNameFree(newName, exepctionId) {
 
 /*
 	Method: setValue2
-	sets value of primitive aswell as sets Definiton Error 
+	sets value of primitive aswell as sets Definiton Error
 */
 function setValue2(primitive, value) {
-	let valueStr = value; 
+	let valueStr = value;
 	while(valueStr[valueStr.length-1] === " " || valueStr[valueStr.length-1] === ";" || valueStr[valueStr.length-1] === "\n"){
 		valueStr = valueStr.substring(0, valueStr.length-1);
 	}
@@ -175,7 +175,7 @@ function setValue2(primitive, value) {
 }
 
 
-/* 
+/*
 	Method: findLinkedOutPrimitives
 
 	Finds and returns all primitives that primitive with param:id is liked to
@@ -190,10 +190,10 @@ function findLinkedOutPrimitives(id) {
 	let outgoingLinks = links.filter((p) => (p.source) ? p.source.id == id : false);
 	return outgoingLinks.map(s => s.target).filter(exists => Boolean(exists));
 }
-/* 
+/*
 	Method: findLinkedInPrimitives
 
-	Finds and returns all primitives that has ingoing links to param:id 
+	Finds and returns all primitives that has ingoing links to param:id
 
 	Return:
 
@@ -226,10 +226,10 @@ function replaceName(definition, oldName, newName) {
 
 /**
  * Changes names of all references of names in their definitions.
- * 
- * @param {string or number} 	id 
- * @param {string} 				oldName 
- * @param {string} 				newName 
+ *
+ * @param {string or number} 	id
+ * @param {string} 				oldName
+ * @param {string} 				newName
  */
 function changeReferencesToName(id, oldName, newName) {
 	let objWLinkedPrims = findLinkedOutPrimitives(id);
@@ -243,7 +243,7 @@ function changeReferencesToName(id, oldName, newName) {
 				let newEquation = replaceName(p.getAttribute("Equation"), oldName, newName);
 				p.setAttribute("Equation", newEquation);
 				break;
-			case "Stock": 
+			case "Stock":
 				let newInitialValue = replaceName(p.getAttribute("InitialValue"), oldName, newName);
 				p.setAttribute("InitialValue", newInitialValue);
 				break;
@@ -273,7 +273,7 @@ function isPrimitiveGhost(primitive) {
 }
 
 /**
- * must contain charachter between A-Z or a-z 
+ * must contain charachter between A-Z or a-z
  */
 function isTimeUnitOk(timeUnit) {
 	let lowercase = timeUnit.toLowerCase();
@@ -286,10 +286,10 @@ function isTimeUnitOk(timeUnit) {
 }
 
 /**
- * Get the default value from primitiveBank 
- * 
- * @param {string} lowercaseNodeName 
- * @param {string} attribute 
+ * Get the default value from primitiveBank
+ *
+ * @param {string} lowercaseNodeName
+ * @param {string} attribute
  */
 
 
@@ -300,7 +300,7 @@ function getDefaultAttributeValue(lowercaseNodeName, attribute) {
 /**
  * Get the type of the primitive
  * This includes constant which is a type of variable
- * 
+ *
  */
 
 function getTypeNew(prim) {
@@ -313,8 +313,8 @@ function getTypeNew(prim) {
 
 /**
  	Method: replaceName
-	replaces all depricated Diagrams objects with new TimePlots primitives 
-	should be done before syncing primitives 
+	replaces all depricated Diagrams objects with new TimePlots primitives
+	should be done before syncing primitives
  */
 
 function replaceDiagamsWithTimePlots() {
@@ -327,7 +327,7 @@ function replaceDiagamsWithTimePlots() {
 		replacePrim.setAttribute("Primitives", primitive_list[key].getAttribute("Primitives"));
 		removePrimitive(primitive_list[key]);
 	}
-} 
+}
 
 
 /**
@@ -340,7 +340,7 @@ function isValidToolName(newName) {
 
 /**
  * Get Comma Seperated Attribute
- * @return {[string]} array of the objects 
+ * @return {[string]} array of the objects
  */
 function getCSA(primitive, attribute) {
 	let tempString = primitive.getAttribute(attribute);
@@ -352,7 +352,7 @@ const trackableTypes = ["Stock", "Flow", "Variable", "Converter"];
 
 /**
  * 	Method: setIdsToDisplay
- * 	@param {string} plotId ID of plot to set 
+ * 	@param {string} plotId ID of plot to set
  * 	@param {[string]} idList lists of IDs To add
  */
  function setDisplayIds(plotPrimitive, idList, sideList) {
@@ -360,10 +360,10 @@ const trackableTypes = ["Stock", "Flow", "Variable", "Converter"];
 		setDisplayIdsForTimePlot(plotPrimitive, idList, sideList);
 	} else {
 
-		// Clear primitives 
+		// Clear primitives
 		plotPrimitive.setAttribute("Primitives", "");
 
-		// Add new primitives 
+		// Add new primitives
 		idList.forEach(newId => {
 			addDisplayId(plotPrimitive, newId);
 		});
@@ -373,7 +373,7 @@ const trackableTypes = ["Stock", "Flow", "Variable", "Converter"];
 /**
  	Method: getIdsToDisplay
 	Gets all ids to display for a given plot
-	@param {string} plotPrimitive ID of plot to get 
+	@param {string} plotPrimitive ID of plot to get
 	@returns {[string]} primitive's id to display for Plots/Table
  */
 function getDisplayIds(plotPrimitive) {
@@ -382,20 +382,20 @@ function getDisplayIds(plotPrimitive) {
 	} else {
 		idsString = plotPrimitive.getAttribute("Primitives");
 		let ids = idsString === "" ? [] : idsString.split(",");
-		// Clear ids that have no primitive 
+		// Clear ids that have no primitive
 		ids.filter(id => findID(id) !== null);
 		setDisplayIds(plotPrimitive, ids);
 		return ids;
 	}
-	
+
 }
 
 /**
  	Method: removeIdToDisplay
 	Removes id to Diaplay for Plots/Table
 	@param {string} plotPrimitive ID of plot to change
-	@param {string} removeId plot to remove 
-	@returns {boolean} if ID was successfuly removed 
+	@param {string} removeId plot to remove
+	@returns {boolean} if ID was successfuly removed
  */
 function removeDisplayId(plotPrimitive, removeId) {
 	if (isTimePlot(plotPrimitive)) {
@@ -409,7 +409,7 @@ function removeDisplayId(plotPrimitive, removeId) {
 		setDisplayIds(plotPrimitive, ids);
 		return removeIndex !== -1;
 	}
-	
+
 }
 
 /**
@@ -439,18 +439,18 @@ function isTimePlot(plotPrimitive) {
 
 
 function setDisplayIdsForTimePlot(plotPrimitive, idList, sideList) {
-	
+
 	if (sideList === undefined) {
 		throw Error(`sideList is undefined for TimePlot`);
 	} else if (idList.length !== sideList.length) {
 		throw Error(`idList.length ${idList.length} !== sideList.length ${sideList.length}`);
 	}
-	
+
 	// Clear display ids
 	plotPrimitive.setAttribute("Primitives", "");
 	plotPrimitive.setAttribute("Sides", "");
 
-	// Add new display ids 
+	// Add new display ids
 	idList.forEach((id, index) => {
 		addDisplayIdForTimePlot(plotPrimitive, id, sideList[index]);
 	});
@@ -465,7 +465,7 @@ function getDisplayIdsForTimePlot(plotPrimitive) {
 		sides = ids.map(() => "L");
 	}
 
-	// Clear ids that have no primitive 
+	// Clear ids that have no primitive
 	for(let i = ids.length-1; i >= 0; i--) {
 		currentId = ids[i];
 		if (findID(currentId) === null) {
