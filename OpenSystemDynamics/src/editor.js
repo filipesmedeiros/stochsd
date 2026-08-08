@@ -359,9 +359,6 @@ class InfoBar {
 			let definition = getValue(primitive);
 			this.infoDE.html(`${DefinitionError.getMessage(primitive)}`);
 
-			let isRestricted = primitive.getAttribute("NonNegative") === "true" || primitive.getAttribute("OnlyPositive") === "true";
-			this.setRestricted(isRestricted, name);
-
 			let definitionLines = definition.split("\n");
 			if (definitionLines[0] !== "") {
 				this.cmInfoDef.setValue(`[${name}] = ${definitionLines[0]}`);
@@ -4765,7 +4762,6 @@ class FlowTool extends TwoPointerTool {
 	}
 	static createTwoPointer(x, y, name) {
 		this.primitive = createConnector(name, "Flow", null, null);
-		setNonNegative(this.primitive, false); 			// What does this do?
 
 		this.current_connection = new FlowVisual(this.primitive.id, this.getType(), [x, y], [x + 1, y + 1]);
 		this.current_connection.name_pos = Number(this.primitive.getAttribute("RotateName"));
@@ -9722,7 +9718,9 @@ class DefinitionEditor extends jqDialog {
 							</div>
 							<textarea class="value-field enter-apply" cols="30" rows="30"></textarea>
 							<div class="function-helper" style="width: 100%; margin: 0.4em 0.2em;" ></div>
-							<div class="primitive-references-div" style="width: 100%; overflow-x: auto" ><!-- References goes here-->
+							<b>Unit:</b><br/>
+							<input id="unit-field" class="enter-apply cm-primitive" style="width: 100%;" type="text" value=""><br/>
+							<div class="primitive-references-div" style="width: 100%; overflow-x: auto" ><!-- References go here-->
 							</div>
 						</div>
 					</div>
@@ -9812,14 +9810,8 @@ class DefinitionEditor extends jqDialog {
 
 		this.valueField = $(this.dialogContent).find(".value-field").get(0);
 		this.nameField = $(this.dialogContent).find(".name-field").get(0);
+		this.unitField = $(this.dialogContent).find("#unit-field").get(0);
 		this.referenceDiv = $(this.dialogContent).find(".primitive-references-div").get(0);
-		this.restrictNonNegativeCheckbox = $(this.dialogContent).find(".restrict-to-non-negative-checkbox").get(0);
-		this.restrictNonNegativeDiv = $(this.dialogContent).find(".restrict-to-non-negative-div").get(0);
-		this.restrictNote = $(this.dialogContent).find(".restrict-note-div").get(0);
-
-		$(this.restrictNonNegativeCheckbox).click(() => {
-			this.updateRestrictNoteText();
-		});
 
 		/** @param {import("./functionCategories").FunctionDetails[]} functionList */
 		let functionListToHtml = function (functionList) {
@@ -9912,19 +9904,6 @@ class DefinitionEditor extends jqDialog {
 		$(this.nameField).val(oldNameBrackets);
 		this.cmValueField.setValue(oldValue);
 
-		// Handle restrict to non-negative
-		if (["Flow", "Stock"].indexOf(getType(this.primitive)) != -1) {
-			// If element has restrict to non-negative
-			$(this.restrictNonNegativeDiv).show();
-			let restrictNonNegative = getNonNegative(this.primitive);
-			$(this.restrictNonNegativeCheckbox).prop("checked", restrictNonNegative);
-		} else {
-			// Otherwise hide that option
-			$(this.restrictNonNegativeDiv).hide();
-		}
-		this.updateRestrictNoteText();
-
-
 		// Create reference list
 		let referenceList = getLinkedPrimitives(this.primitive);
 
@@ -10004,17 +9983,6 @@ class DefinitionEditor extends jqDialog {
 			</p>
 		</div>`);
 	}
-	updateRestrictNoteText() {
-		let checked = $(this.restrictNonNegativeCheckbox).prop("checked");
-		if (checked) {
-			$(this.restrictNote).html(noteHtml(`
-				Restricting to non-negative values may have unintended consequences.<br/>
-				Use only when you have a well motivated reason.
-			`));
-		} else {
-			$(this.restrictNote).html("");
-		}
-	}
 	templateClick(event) {
 		let templateData = $(event.target).data("template");
 		let start = this.cmValueField.getCursor("start");
@@ -10067,10 +10035,6 @@ class DefinitionEditor extends jqDialog {
 					changeReferencesToName(this.primitive.id, oldName, newName);
 				}
 			}
-
-			// Handle restrict to non-negative
-			let restrictNonNegative = $(this.restrictNonNegativeCheckbox).prop("checked");
-			setNonNegative(this.primitive, restrictNonNegative);
 
 			let visualObject = object_array[this.primitive.id];
 			if (visualObject) {
@@ -10391,11 +10355,6 @@ class EquationListDialog extends jqDialog {
 							const outputStr = output.map(f => ` -Δt*${makePrimitiveName(getName(f))}`).join("");
 							return makePrimitiveName(getName(prim)) + inputStr + outputStr;
 						}
-					},
-					{
-						header: "Restricted",
-						cellFunc: (prim) => prim.getAttribute("NonNegative") === "true" ? `${getName(prim)} ≥ 0` : "",
-						style: "text-align: center;"
 					},
 				]
 			});

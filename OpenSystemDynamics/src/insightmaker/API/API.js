@@ -24,7 +24,7 @@ There are three primary avenues for making use of this API.
 
 * For a parent page to manipulate an embedded IFRAME containing an Insight Maker model.
 
-* Using the JavaScript console of the web browser to manipulate a model. To find the built-in JavaScript console for a web browser, 
+* Using the JavaScript console of the web browser to manipulate a model. To find the built-in JavaScript console for a web browser,
 see the relevant browser's documentation.
 
 Primitive Types:
@@ -230,7 +230,7 @@ function downloadFile(fileName, data) {
 	// Create Blob and attach it to ObjectURL
 	var blob = new Blob([data], {type: "octet/stream"}),
 	url = window.URL.createObjectURL(blob);
-	
+
 	// Create download link and click it
 	var a = document.createElement("a");
 	a.style.display="none";
@@ -238,7 +238,7 @@ function downloadFile(fileName, data) {
 	a.download = fileName;
 	document.body.appendChild(a);
 	a.click();
-	
+
 	// The setTimeout is a fix to make it work in Firefox
 	// Without it, the objectURL is removed before the click-event is triggered
 	// And the download does not work
@@ -639,7 +639,7 @@ onSelected - A function fired once files have been selected but before data has 
 
 Returns:
 
-The openFile function is asynchronous and returns nothing directly. On the successful selection of files, the callback is called with the results. 
+The openFile function is asynchronous and returns nothing directly. On the successful selection of files, the callback is called with the results.
 
 If config.multiple is false, these results are a single file object. If config.multiple is true, then these results are an array of file objects. Each file object has the following properties:
 
@@ -808,7 +808,7 @@ config.selectedDisplay - The selected tab in the display, should be a display pr
 config.rate - A multiplier to control the speed of the animation in the result window. Use -1 to skip animation.
 config.onSuccess(results) - Callback called when the simulation completes successfully.
 config.onError(results) - Callback called when an error occurs during the simulation.
-config.onPause(results) - Callback called when the simulation is paused. If this is set and a pause interval is defined for the model, then the simulation will be asynchronous and a results object will not be returned directly by the function call. 
+config.onPause(results) - Callback called when the simulation is paused. If this is set and a pause interval is defined for the model, then the simulation will be asynchronous and a results object will not be returned directly by the function call.
 
 Returns:
 
@@ -1604,19 +1604,19 @@ function createPrimitive(name, type, position, size, extraAttributes = {}) {
 	// size will be ignored in imdia
 	//~ dpopup("create primitive");
 	var t = type.toLowerCase();
-	
+
 	if(graph instanceof SimpleNode){
 		var parent = graph.children[0].children[0];
 		var vertex = simpleCloneNode(primitiveBank[t], parent);
-		
+
 		for(let key in extraAttributes) {
 			vertex.value.setAttribute(key, extraAttributes[key]);
 		}
-		
+
 		last_vertex=vertex;
 		//~ vertex.value.children.push({"children":[{"attributes"}]
 		//vertex.value.children[0].children[0].attributes
-		
+
 		parent.children.push(vertex);
 		setSize(vertex,size);
 		clearPrimitiveCache();
@@ -1625,7 +1625,7 @@ function createPrimitive(name, type, position, size, extraAttributes = {}) {
 		//~ var new_primitive = new primitive_class(vertex.id,"stock",position[0],position[1]);
 	}else{
 		var parent = graph.getDefaultParent();
-		
+
 		var vertex = graph.insertVertex(parent, null, primitiveBank[t].cloneNode(true), position[0], position[1], size[0], size[1], t);
 	}
 
@@ -1647,8 +1647,8 @@ function createPrimitive(name, type, position, size, extraAttributes = {}) {
 			}
 		}
 	}
-	
-	
+
+
 
 	return vertex;
 }
@@ -1684,7 +1684,7 @@ function createConnector(name, type, alpha, omega) {
 
 
 	var t = (type).toLowerCase();
-	
+
 	if(graph instanceof SimpleNode){
 		var parent = graph.children[0].children[0];
 
@@ -1700,7 +1700,7 @@ function createConnector(name, type, alpha, omega) {
 		clearPrimitiveCache();
 	}else{
 		var parent = graph.getDefaultParent();
-		
+
 		if (omega == null && alpha == null) {
 			usedTemp = true;
 			x = createPrimitive("temp stock xyz", "Stock", [300, 300], [10, 10]);
@@ -1724,11 +1724,11 @@ function createConnector(name, type, alpha, omega) {
 
 			omega = x;
 		}
-	
+
 		var edge = graph.insertEdge(parent, null, primitiveBank[t].cloneNode(true), alpha, omega, t);
 	}
-	
-	
+
+
 
 
 	setName(edge, name);
@@ -1761,7 +1761,7 @@ function removePrimitive(primitive) {
 	if (!(primitive instanceof Array)) {
 		primitive = [primitive];
 	}
-	
+
 	if(graph instanceof SimpleNode){
 		var connectors = findType(["Flow", "Transition", "Link"]);
 		primitive.forEach(function(x){
@@ -1811,7 +1811,7 @@ function highlight(primitive) {
 	if(graph instanceof SimpleNode){
 		return;
 	}
-	
+
 	var folder = getParent(primitive);
 	while (folder) {
 		if (getCollapsed(folder)) {
@@ -2007,7 +2007,7 @@ function setName(primitive, name) {
 			return false;
 		}
 	});
-	// Successful if no name change returned false 
+	// Successful if no name change returned false
 	if(success.indexOf(false)==-1) {
 		return true;
 	} else {
@@ -2239,7 +2239,7 @@ Shows the value editor for the passed primitive.
 
 Parameters:
 
-primitive - The primitive for which the editor will be shown. 
+primitive - The primitive for which the editor will be shown.
 annotations - An optional array containing a list of annotations. Only valid for primitives with equations.
 
 Example:
@@ -2256,7 +2256,7 @@ function showEditor(primitive, annotations) {
 		}
 		return;
 	}
-	
+
 	if (primitive.value.nodeName == "Converter") {
 		var editorWindow = new ConverterWindow({
 			parent: "",
@@ -2274,7 +2274,7 @@ function showEditor(primitive, annotations) {
                 'data-qtip': "If checked, the value of the stock will not be allowed to fall below zero. The rates of outflows may be adjusted to ensure this condition is met."
             }
 		});
-				
+
 		var editorWindow = new EquationWindow({
 			parent: "",
 			cell: primitive,
@@ -2295,7 +2295,7 @@ function showEditor(primitive, annotations) {
                 'data-qtip': "If checked, the flow will not be applied if the calculated rate is less than zero."
             }
 		});
-				
+
 		var editorWindow = new EquationWindow({
 			parent: "",
 			cell: primitive,
@@ -2313,7 +2313,7 @@ function showEditor(primitive, annotations) {
 			recalculate.setDisabled(cond);
 			repeat.setDisabled(cond);
 		}
-		
+
 		var trigger = new Ext.form.ComboBox({
 			triggerAction: "all",
 			store: ['Timeout', 'Probability', 'Condition'],
@@ -2328,7 +2328,7 @@ function showEditor(primitive, annotations) {
 				}
 			}
 		});
-		
+
 		var recalculate = new Ext.form.field.Checkbox({
 			xtype: "checkboxfield",
 			boxLabel: getText('Recalculate each time step'),
@@ -2338,7 +2338,7 @@ function showEditor(primitive, annotations) {
                 'data-qtip': "If this is not true, the equation will be evaluated once and the trigger time scheduled based on that calculation. If this is true, the timeout or probability will be recalculated as the state of the system changes."
             }
 		});
-		
+
 		var repeat = new Ext.form.field.Checkbox({
 			xtype: "checkboxfield",
 			boxLabel: getText('Repeat after triggering'),
@@ -2348,15 +2348,15 @@ function showEditor(primitive, annotations) {
                 'data-qtip': "If this is true, the transition will be rescheduled after it is triggered. If this is not true, the transition will only be rescheduled if its source state becomes active again."
             }
 		});
-		
+
 		var items = {
 			xtype: 'container',
 			layout: 'hbox',
 			items: [trigger, recalculate, repeat]
 		}
-				
+
 		testVisibility();
-		
+
 		var editorWindow = new EquationWindow({
 			parent: "",
 			cell: primitive,
@@ -2484,6 +2484,46 @@ function setValue(primitive, value) {
 }
 
 /*
+Method: setUnit
+*/
+
+function setUnit(primitive, value) {
+
+	map(primitive, function(primitive) {
+		if (getValue(primitive) != value) {
+			var n = primitive.value.nodeName;
+			if (n == "Stock") {
+				setAttributeUndoable(primitive, "InitialValue", String(value));
+			} else if (n == "Flow") {
+				setAttributeUndoable(primitive, "FlowRate", String(value));
+			} else if (n == "Transition") {
+				setAttributeUndoable(primitive, "Value", String(value));
+			} else if (n == "State") {
+				setAttributeUndoable(primitive, "Active", String(value));
+			} else if (n == "Variable") {
+				setAttributeUndoable(primitive, "Equation", String(value));
+			} else if (n == "Button") {
+				setAttributeUndoable(primitive, "Function", String(value));
+			} else if (n == "Converter") {
+				setAttributeUndoable(primitive, "Data", String(value));
+			} else if (n == "Action") {
+				setAttributeUndoable(primitive, "Action", String(value));
+			} else if (n == "Agents") {
+				if (value < 0 || Math.round(value) != value) {
+					dpopup("The agent population size must be a non-negative integer.");
+					return;
+				}
+				setAttributeUndoable(primitive, "Size", parseFloat(value));
+			}
+
+
+		}
+	});
+
+}
+
+
+/*
 Method: getSize
 
 Gets the size of the passed primitive.
@@ -2508,7 +2548,7 @@ function getSize(primitive) {
 			var geometry = primitive.value.children[0].children[0].attributes;
 			tgeometry = geometry;
 			// console.log(geometry);
-			// ERROR HERE: geometry.getNamedItem("width") === NULL 
+			// ERROR HERE: geometry.getNamedItem("width") === NULL
 			let widthItem = geometry.getNamedItem("width");
 			let heightItem = geometry.getNamedItem("height");
 			if (widthItem && heightItem) {
@@ -2517,7 +2557,7 @@ function getSize(primitive) {
 				return [width, height];
 			} else {
 				return [0, 0];
-			}			
+			}
 		}
 		var size = graph.getCellBounds(primitive);
 		var scale = graph.view.getScale();
@@ -2571,10 +2611,10 @@ function getPosition(primitive) {
 	//~ console.error(primitive);
 	return map(primitive, function(primitive) {
 		if(graph instanceof SimpleNode){
-			
-			
-			
-			
+
+
+
+
 			switch(getPositionType(primitive)) {
 			case 1:
 				if(typeof primitive.value.children[0]=="undefined") {
@@ -2583,12 +2623,12 @@ function getPosition(primitive) {
 				}
 				var geometry = primitive.value.children[0].children[0].attributes;
 				tgeometry = geometry;
-				
+
 				var leftSide = 0;
 				if(geometry.getNamedItem("x")) {
 					leftSide = parseInt(geometry.getNamedItem("x").value);
 				}
-				
+
 				var topSide = 0;
 				if(geometry.getNamedItem("y")) {
 					topSide = parseInt(geometry.getNamedItem("y").value);
@@ -2727,7 +2767,7 @@ See also:
 function setPosition(primitive, position) {
 	//~ dpopup("set position");
 	//~ dpopup(primitive+" "+position[0]+" "+position[1]);
-	
+
 	if(graph instanceof SimpleNode) {
 		switch(getPositionType(primitive)) {
 		case 1:
@@ -2744,9 +2784,9 @@ function setPosition(primitive, position) {
 			let centerPosition = getPosition(primitive);
 			let relativeSourcePosition = positionDifference(getSourcePosition(primitive),centerPosition);
 			let relativeTargetPosition = positionDifference(getTargetPosition(primitive),centerPosition);
-			
+
 			setTargetPosition(primitive,positionSum(position,relativeTargetPosition));
-			
+
 			setSourcePosition(primitive,positionSum(position,relativeSourcePosition));
 			primitive.positionUpdate();
 			break;
@@ -2833,7 +2873,7 @@ function getShowSlider(primitive) {
 /*
 Method: setShowSlider
 
-Sets the show slider property of the passed primitive. 
+Sets the show slider property of the passed primitive.
 
 Parameters:
 
@@ -2875,7 +2915,7 @@ function getSliderMin(primitive) {
 /*
 Method: setSliderMin
 
-Sets the slider min property of the passed primitive. 
+Sets the slider min property of the passed primitive.
 
 Parameters:
 
@@ -2917,7 +2957,7 @@ function getSliderMax(primitive) {
 /*
 Method: setSliderMax
 
-Sets the slider max property of the passed primitive. 
+Sets the slider max property of the passed primitive.
 
 Parameters:
 
@@ -2959,7 +2999,7 @@ function getSliderStep(primitive) {
 /*
 Method: setSliderStep
 
-Sets the slider step property of the passed primitive. 
+Sets the slider step property of the passed primitive.
 
 Parameters:
 
@@ -3291,8 +3331,8 @@ function setNonNegative(primitive, nonNegative) {
 	                graph.setCellStyles("startFill", 0, [primitive]);
 	            }
 			}
-           
-			
+
+
 		}
 	});
 }
@@ -3389,7 +3429,7 @@ function setDelay(primitive, delay) {
 
 }
 
-/* 
+/*
 
 Group: Connectors
 
@@ -3448,7 +3488,7 @@ function setEnds(connector, ends) {
 			primitive.target = ends[1];
 			clearPrimitiveCache();
 		}
-		
+
 	});
 }
 
@@ -3457,12 +3497,12 @@ function setEnds(connector, ends) {
 /*
 function setSource(connector,source) {
 	connector.source = source;
-	clearPrimitiveCache();	
+	clearPrimitiveCache();
 }
 
 function setTarget(connector,target) {
 	connector.target = target;
-	clearPrimitiveCache();	
+	clearPrimitiveCache();
 }*/
 
 // Replaced original setSource & setTarget above with functions below
@@ -3539,7 +3579,7 @@ function connected(primitive1, primitive2) {
 	return false;
 }
 
-/* 
+/*
 
 Group: States
 
@@ -3591,7 +3631,7 @@ function setResidency(state, residency) {
 	});
 }
 
-/* 
+/*
 
 Group: Transitions and Actions
 
@@ -3777,7 +3817,7 @@ function setTriggerRecalculate(primitive, recalculate) {
 	});
 }
 
-/* 
+/*
 
 Group: Converters
 
@@ -3930,7 +3970,7 @@ function setInterpolation(converter, interpolation) {
 }
 
 
-/* 
+/*
 
 Group: Buttons
 
@@ -4538,9 +4578,9 @@ See also:
 function getParent(primitive) {
 	var defaultID = "1"; //graph.getDefaultParent().id;
 	return map(primitive, function(primitive) {
-		
+
 		var p = primitive.parentNode || primitive.parent;
-		
+
 		if ((p.value && p.value.nodeName =="root") || p.nodeName=="root" || p.id == defaultID) {
 			return null;
 		} else {
@@ -4613,7 +4653,7 @@ See also:
 
 function getFrozen(primitive) {
 	return map(primitive, function(primitive) {
-		
+
 		return isTrue(primitive.getAttribute("Frozen"));
 	});
 }
@@ -4634,7 +4674,7 @@ See also:
 */
 
 function setFrozen(primitive, frozen) {
-	
+
 	map(primitive, function(primitive) {
 		setAttributeUndoable(primitive, "Frozen", frozen);
 	});
@@ -4661,7 +4701,7 @@ function getChildren(folder, recursive) {
 	if (isUndefined(recursive)) {
 		recursive = true;
 	}
-	
+
 	if(!folder.children){
 		return [];
 	}
@@ -4835,7 +4875,7 @@ Removes a specific type of primitive from an array of primitives.
 Parameter:
 
 array - An array of primitives.
-type - The type of primitives to remove (e.g. "Flow" or "Stock"). May also be an array of types. 
+type - The type of primitives to remove (e.g. "Flow" or "Stock"). May also be an array of types.
 
 Return:
 
@@ -4864,7 +4904,7 @@ function excludeType(array, type) {
 			return array;
 		}
 	}
-	
+
 	if(Array.isArray(type)){
 		for(var i = 0; i < type.length; i++){
 			array = removeSingle(array, type[i]);
@@ -4873,7 +4913,7 @@ function excludeType(array, type) {
 	}else{
 		return removeSingle(array, type);
 	}
-	
+
 }
 
 /*
