@@ -4802,7 +4802,7 @@ class FlowTool extends TwoPointerTool {
 	static leftMouseUp(x, y, shiftKey) {
 	  isDrawingFlow = false;
 		currentMousePos = [undefined, undefined];
-			
+
 		if (this.current_connection) {
 			this.mouseUpSingleAnchor(x, y, shiftKey, this.current_connection.end_anchor.id);
 			this.current_connection = null;
@@ -9723,13 +9723,6 @@ class DefinitionEditor extends jqDialog {
 							<textarea class="value-field enter-apply" cols="30" rows="30"></textarea>
 							<div class="function-helper" style="width: 100%; margin: 0.4em 0.2em;" ></div>
 							<div class="primitive-references-div" style="width: 100%; overflow-x: auto" ><!-- References goes here-->
-							</div>
-							<div class="restrict-to-non-negative-div">
-								<br/>
-								<label>
-								<input class="restrict-to-non-negative-checkbox enter-apply" type="checkbox"/>
-								Restrict to non-negative values</label>
-								<div class="restrict-note-div"></div>
 							</div>
 						</div>
 					</div>
