@@ -361,7 +361,7 @@ class InfoBar {
 
 			let definitionLines = definition.split("\n");
 			if (definitionLines[0] !== "") {
-				this.cmInfoDef.setValue(`[${name}] = ${definitionLines[0]}`);
+				this.cmInfoDef.setValue(`[${name}] = ${definitionLines[0]} | Unit: ${getUnits(primitive)}`);
 			} else {
 				let type = selected.type;
 
@@ -9810,7 +9810,8 @@ class DefinitionEditor extends jqDialog {
 
 		this.valueField = $(this.dialogContent).find(".value-field").get(0);
 		this.nameField = $(this.dialogContent).find(".name-field").get(0);
-		this.unitField = $(this.dialogContent).find("#unit-field").get(0);
+    this.unitField = $(this.dialogContent).find("#unit-field").get(0);
+		console.log(this.unitField)
 		this.referenceDiv = $(this.dialogContent).find(".primitive-references-div").get(0);
 
 		/** @param {import("./functionCategories").FunctionDetails[]} functionList */
@@ -9897,11 +9898,14 @@ class DefinitionEditor extends jqDialog {
 		const oldValue = getValue(this.primitive).replace(/\\n/g, "\n");
 
 		const oldName = getName(this.primitive);
-		const oldNameBrackets = makePrimitiveName(oldName);
+    const oldNameBrackets = makePrimitiveName(oldName);
+
+    const oldUnits = getUnits(this.primitive);
 
 		this.setTitle(oldNameBrackets + " properties");
 
 		$(this.nameField).val(oldNameBrackets);
+		$(this.unitField).val(oldUnits);
 		this.cmValueField.setValue(oldValue);
 
 		// Create reference list
@@ -10025,7 +10029,10 @@ class DefinitionEditor extends jqDialog {
 		if (this.primitive) {
 			// Handle value
 			let value = this.cmValueField.getValue();
-			setValue2(this.primitive, value);
+      setValue2(this.primitive, value);
+      // Handle unit
+      const unit = this.unitField.value.trim();
+			setUnits(this.primitive, unit);
 			// handle name
 			let oldName = getName(this.primitive);
 			let newName = stripBrackets($(this.dialogContent).find(".name-field").val());

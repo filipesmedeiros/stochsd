@@ -1978,6 +1978,16 @@ function getName(primitive) {
 }
 
 /*
+Method: getUnit
+*/
+
+function getUnit(primitive) {
+	return map(primitive, function(primitive) {
+		return primitive.getAttribute("Unit");
+	});
+}
+
+/*
 Method: setName
 
 Sets the name of the passed primitive.
@@ -2482,46 +2492,6 @@ function setValue(primitive, value) {
 	});
 
 }
-
-/*
-Method: setUnit
-*/
-
-function setUnit(primitive, value) {
-
-	map(primitive, function(primitive) {
-		if (getValue(primitive) != value) {
-			var n = primitive.value.nodeName;
-			if (n == "Stock") {
-				setAttributeUndoable(primitive, "InitialValue", String(value));
-			} else if (n == "Flow") {
-				setAttributeUndoable(primitive, "FlowRate", String(value));
-			} else if (n == "Transition") {
-				setAttributeUndoable(primitive, "Value", String(value));
-			} else if (n == "State") {
-				setAttributeUndoable(primitive, "Active", String(value));
-			} else if (n == "Variable") {
-				setAttributeUndoable(primitive, "Equation", String(value));
-			} else if (n == "Button") {
-				setAttributeUndoable(primitive, "Function", String(value));
-			} else if (n == "Converter") {
-				setAttributeUndoable(primitive, "Data", String(value));
-			} else if (n == "Action") {
-				setAttributeUndoable(primitive, "Action", String(value));
-			} else if (n == "Agents") {
-				if (value < 0 || Math.round(value) != value) {
-					dpopup("The agent population size must be a non-negative integer.");
-					return;
-				}
-				setAttributeUndoable(primitive, "Size", parseFloat(value));
-			}
-
-
-		}
-	});
-
-}
-
 
 /*
 Method: getSize

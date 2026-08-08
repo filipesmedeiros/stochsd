@@ -238,7 +238,7 @@ function innerRunSimulation(config) {
 		}
 	}
 
-	var modelItems = primitives();
+  var modelItems = primitives();
 
 	for (var i = 0; i < modelItems.length; i++) {
 
@@ -1204,7 +1204,7 @@ function linkPrimitive(primitive, dna) {
 
 			// CHANGED FROM "alpha" to "insightmaker_alpha" by Magnus to not have conflicts with the alpha value in the equation
 			// Also for omega
-			if (myNeighborhood["insightmaker_alpha"]) { 
+			if (myNeighborhood["insightmaker_alpha"]) {
 				alpha = myNeighborhood["insightmaker_alpha"];
 			}
 
@@ -1472,7 +1472,7 @@ function buildPlacements(submodel, items) {
 var allPlaceholders = {};
 
 function getPrimitiveNeighborhood(primitive, dna) {
-	
+
 	var neighbors = neighborhood(dna.cell);
 	var placeholders = allPlaceholders[dna.id] ? allPlaceholders[dna.id] : {};
 

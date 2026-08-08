@@ -59,8 +59,8 @@ function loadXML(modelString) {
 	var string = (new XMLSerializer()).serializeToString(xmldocument);
 	graph.children[0].value = {nodeName: 'root', id: 1};
 	graph.children[0].id = 1;
-	
-	
+
+
 	clearPrimitiveCache();
 	var connectors = findType(["Flow", "Link", "Transition"]);
 	var items = primitives();
@@ -76,35 +76,35 @@ function loadXML(modelString) {
 			}
 		})
 	});
-	
+
 	clearPrimitiveCache();
-	
+
 	function cleanCell(x){
 		if(x.children){
 			var cells = x.children.filter(function(c){
 				return c.value.nodeName == "mxCell";
 			});
-		
+
 			if(cells.length > 0){
 				if(cells[0].getAttribute("parent")){
 					setParent(x, findID(cells[0].getAttribute("parent")));
 				}
 			}
-		
+
 			x.children = x.children.filter(function(c){
 				return c.value.nodeName != "mxCell";
 			});
-		
+
 			for(var i = x.children.length - 1; i >= 0; i--){
 				cleanCell(x.children[i]);
 			};
 		}
-		
+
 	}
 	cleanCell(graph);
-	
+
 	clearPrimitiveCache();
-	
+
 	return graph;
 }
 
@@ -120,11 +120,11 @@ function simpleCloneNode2(node, parent){
 	var newId = Math.max.apply(null, currId) + 1;
 	obj.id=newId;
 	obj.setAttribute("id",newId);
-	
-	
+
+
 	var parent = graph.children[0].children[0];
-	parent.children.push(obj);	
-	
+	parent.children.push(obj);
+
 	return obj;
 }
 
@@ -133,23 +133,23 @@ function simpleCloneNode(node, parent){
 	obj.value = node.cloneNode(true);
 	obj.parent = parent;
 	obj.parentNode= parent;
-	
+
 
 	var currId = [1].concat(primitives().map(function(x){return x.id}).filter(function(x){return x}));
-	
+
 	obj.setAttribute("id", Math.max.apply(null, currId) + 1);
-	
+
 	if (node.attributes.length > 0) {
-		
+
 		for (var j = 0; j < node.attributes.length; j++) {
 			var attribute = node.attributes.item(j);
 			obj.setAttribute(attribute.nodeName,attribute.nodeValue);
 		}
-		
+
 	}
 	obj.id = obj.getAttribute("id");
-	
-	
+
+
 	return obj;
 }
 
@@ -164,14 +164,14 @@ function mxGraphToJson(xml, parent) {
 	if (xml.nodeType == 1) { // element
 		// do attributes
 		if (xml.attributes.length > 0) {
-			
+
 			for (var j = 0; j < xml.attributes.length; j++) {
 				var attribute = xml.attributes.item(j);
-				
+
 				obj.setAttribute(attribute.nodeName,attribute.nodeValue);
 			}
 			obj.id = obj.getAttribute("id");
-			
+
 		}
 	} else if (xml.nodeType == 3) { // text
 		return null;
@@ -192,7 +192,7 @@ function mxGraphToJson(xml, parent) {
 };
 
 function setAttributeUndoable(primitive, name, value){
-	if(primitive instanceof SimpleNode){
+  if (primitive instanceof SimpleNode) {
 		primitive.setAttribute(name, value);
 		clearPrimitiveCache();
 	}else{
