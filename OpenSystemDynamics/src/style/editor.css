@@ -254,6 +254,25 @@ button.tool-button img {
     font-size: 10px;
     color: var(--color-text-secondary);
 }
+#btn_ignore_units {
+    height: 100%; 
+    vertical-align: top; 
+    font-family: Arial, Helvetica, sans-serif;
+    display: inline-block; 
+    border: unset;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-highlight-neutral);
+    padding-inline: 0.5rem;
+    box-sizing: border-box;
+    border-radius: 0.25rem;
+}
+#btn_ignore_units:hover {
+    border-color: black;
+}
+#btn_ignore_units > #ignore_units-label {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+}
 button svg {
     border-width: 0px;
 }

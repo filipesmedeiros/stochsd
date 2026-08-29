@@ -276,12 +276,16 @@ UnitStore.prototype.toString = function() {
 }
 
 
+function unitsIgnored(){
+	return (typeof simulate !== "undefined") && simulate && simulate.ignoreUnits;
+}
+
 function convertUnits(source, target, loose) {
 	if(source === target) {
 		return 1;
 	}
 	if((source && (! target)) || (target && (! source))){
-		if(loose){
+		if(loose || unitsIgnored()){
 			return 1
 		}else{
 			return 0;
@@ -296,9 +300,14 @@ function convertUnits(source, target, loose) {
 	}
 
 	if (source.baseUnits !== target.baseUnits) {
+		if(unitsIgnored()){
+			// Units checking is disabled for this run: treat the two
+			// (fundamentally incompatible) units as directly combinable,
+			// with no rescaling, instead of signalling incompatibility.
+			return 1;
+		}
 		return 0;
 	}
 	
 	return fn["/"](source.toBase, target.toBase);
 }
-

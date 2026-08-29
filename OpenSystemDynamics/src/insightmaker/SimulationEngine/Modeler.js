@@ -21,7 +21,7 @@ function runSimulation(config) {
 
 	try {
 		return innerRunSimulation(config); //have an inner function call to escape try-catch performance pathologies
-	} catch (err) {
+  } catch (err) {
 		return checkErr(err, config);
 	}
 }
@@ -108,7 +108,7 @@ function innerRunSimulation(config) {
 	strictUnits = isTrue(setting.getAttribute("StrictUnits"));
 	//strictUnits = false; //Historical mode, can do "{1 cow}+5"
 	strictAgentResolution = isTrue(setting.getAttribute("StrictAgentResolution"));
-	//strictAgentResolution = false // Historical mode, [stoctk].move() will resolve the stock to the agent
+	//strictAgentResolution = false // Historical mode, [stock].move() will resolve the stock to the agent
 	strictLinks = isTrue(getSetting().getAttribute("StrictLinks"));
 	//strictLinks = false // All links are implicitly bidirectional
 
@@ -342,7 +342,8 @@ function innerRunSimulation(config) {
 
 	// Initialize Actual Simulation
 	simulate.setup({
-		model: model
+    model: model,
+		ignoreUnits: config.ignoreUnits,
 	});
 
 	for (var submodel in model.submodels) {
@@ -860,7 +861,6 @@ function simpleUnitsTest(mat, units, primitive, showEditor) {
 
 
 function handleErrorObject(err) {
-
 	if (isLocal()) {
 		console.log(err);
 		if (console.trace) {

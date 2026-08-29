@@ -205,7 +205,13 @@ Primitive.method("testUnits", function(m, ignoreFlow) {
 		return
 	}
 
-	if((! this.dna.units) && m.units){
+	if(simulate && simulate.ignoreUnits){
+		// Units checking is disabled for this run: trust the computed
+		// value as-is and just relabel it with the primitive's declared
+		// units (if any) so downstream consumers (e.g. connected stocks)
+		// still see consistent units, without validating or rescaling it.
+		m.units = this.dna.units;
+	}else if((! this.dna.units) && m.units){
 		error(getText("Wrong units generated for %s. Expected no units and got %s. Either specify units for the primitive or adjust the equation.", "<i>"+clean(this.dna.name)+"</i>", "<i>"+clean(m.units.toString())+"</i>"), this, true);
 	}else if (this.dna.units !== m.units) {
 		var scale = convertUnits(m.units, this.dna.units, true);//XXX fixme

@@ -53,6 +53,7 @@ Simulator.prototype.setup = function(config){
 		end: this.timeEnd
 	});
 
+  this.ignoreUnits = config.ignoreUnits ?? false;
 }
 
 Simulator.prototype.getID = function(x){
@@ -378,7 +379,12 @@ Simulator.prototype.unitsToBase = function(v, u, flow){
 }
 
 Simulator.prototype.adjustNum = function(v, x){
-	if(v.unitless && x.units){
+	if(this.ignoreUnits){
+		// Units checking disabled for this run: relabel the value with
+		// the primitive's own declared units instead of validating it,
+		// so output collection doesn't stop the run on a mismatch.
+		x.units = v.dna.units;
+	}else if(v.unitless && x.units){
 		error(getText("The result of the calculation has units %s, but the primitive is unitless. Please set the units for the primitive so we can determine the proper output.", x.units.toString()), findID(v.id), true);
 	}
 	//console.log(x);

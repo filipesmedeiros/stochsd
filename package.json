@@ -8,6 +8,7 @@
     "icon": "icons/stochsd.png"
   },
   "scripts": {
-    "start": "nw ."
+    "start": "nw .",
+    "deploy": "rsync -a ./OpenSystemDynamics/src/* uberspace_filipe1:~/www/ssd.systemika.org"
   }
 }

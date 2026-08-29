@@ -33,6 +33,9 @@ var licenseDialog;
 
 const isMac = ["Macintosh", "MacIntel", "MacPPC", "Mac68K"].includes(window.navigator.platform);
 
+let currentViewBox = [0, 0, 6000, 2000];
+let currentZoom = 1;
+const ZOOM_STEP = 1.1;
 
 // This values are not used by StochSD, as primitives cannot be resized in StochSD
 // They are only used for exporting the model to Insight Maker
@@ -5588,10 +5591,9 @@ function mouseMoveHandler(event) {
 	mouse.x = x;
 	mouse.y = y;
 
-	if (mouse.isLeftDown) {
-		currentTool.mouseMove(x, y, event.shiftKey);
-	}
-	if (MousePan.middleIsDown) {
+  if (mouse.isLeftDown) {
+    currentTool.mouseMove(x, y, event.shiftKey);
+  } if (MousePan.middleIsDown) {
 		event.preventDefault()
 		MousePan.move(x, y)
 	}
@@ -5867,6 +5869,34 @@ $(window).load(function () {
 			event.preventDefault();
     }
 		if ((!isMac && event.ctrlKey) || (isMac && event.metaKey)) {
+      // if (event.key === "-") {
+      //   const svg = document.querySelector("#svgplane");
+      //   // const svgBg = document.querySelector("#svgplanebackground");
+      //   // const currentLeft = currentViewBox[0] + svgBg.scrollTop * currentZoom;
+      //   // const currentTop = currentViewBox[1] + svgBg.scrollLeft * currentZoom;
+      //   // const currentRight = currentLeft + svgBg.offsetWidth * currentZoom;
+      //   // const currentBottom = currentTop + svgBg.offsetHeight * currentZoom;
+      //   // const currentCentre = [(currentRight - currentLeft) / 2, (currentBottom - currentTop) / 2];
+      //   // const distsToCentre = [
+      //   //   currentCentre[0] - currentLeft,
+      //   //   currentCentre[1] - currentTop,
+      //   //   currentCentre[0] - currentRight,
+      //   //   currentCentre[1] - currentBottom,
+      //   //   ];
+      //   currentViewBox[2] *= ZOOM_STEP;
+      //   currentViewBox[3] *= ZOOM_STEP;
+      //   currentZoom /= ZOOM_STEP;
+      //   svg.setAttribute("viewBox", currentViewBox.join(" "));
+      //   event.preventDefault();
+      // }
+      // if (event.key === "+") {
+      //   const svg = document.querySelector("#svgplane");
+      //   currentViewBox[2] /= ZOOM_STEP;
+      //   currentViewBox[3] /= ZOOM_STEP;
+      //   currentZoom *= ZOOM_STEP;
+      //   svg.setAttribute("viewBox", currentViewBox.join(" "));
+      //   event.preventDefault();
+      // }
 			if (event.key == "1" || event.key.toLowerCase() == "r") {
 				event.preventDefault();
 				RunTool.enterTool();
@@ -5909,8 +5939,11 @@ $(window).load(function () {
 				// History.storeUndoState();
 			}
 		} else if(!isDrawingFlow) {
-      if (event.key === "." && get_selected_ids().length === 0)
-        document.querySelector("#tools-menu-button").style = "";
+      if (get_selected_ids().length === 0)
+        if (event.key === ".")
+          document.querySelector("#tools-menu-button").style = "";
+        else if (event.key === ",")
+          RunResults.setIgnoreUnits(!RunResults.ignoreUnits)
       else if (event.key === "s") ToolBox.setTool("stock")
       else if (event.key === "a") ToolBox.setTool("variable")
       else if (event.key === "f") ToolBox.setTool("flow")
@@ -6046,6 +6079,10 @@ $(window).load(function () {
 	});
 	$("#btn_timeunit").click(function () {
 		timeUnitDialog.show();
+  })
+  $("#btn_ignore_units").click(function () {
+    $("#ignore_units-value").text(!RunResults.ignoreUnits ? "No" : "Yes");
+    RunResults.setIgnoreUnits(!RunResults.ignoreUnits);
 	})
 	if (fileManager.hasSaveAs()) {
 		$("#btn_save_as").show();
@@ -6658,6 +6695,21 @@ class RunResults {
 	/** @type {"none" | "running" | "stopped" | "stepping" | "paused"} */
 	static runState;
 
+	/**
+	 * When true, the model is run without validating/converting units,
+	 * instead of raising an error whenever a computed value's units
+	 * don't match a primitive's declared units. Toggle with
+	 * RunResults.setIgnoreUnits(true/false).
+	 * @type {boolean}
+	 */
+	static ignoreUnits = false;
+
+  static setIgnoreUnits(value) {
+    if (!!value) console.warn("Ignoring units!")
+    else console.info("Units matter again!")
+		this.ignoreUnits = !!value;
+	}
+
 	static init() {
 		this.runState = "none";
 		// Is always null if simulation is not running
@@ -6790,9 +6842,10 @@ class RunResults {
 			setPauseInterval(getTimeStep() * 1000);
 		}
 		this.runState = "running";
-		runOverlay.block();
+    runOverlay.block();
 		this.simulationController = runModel({
 			rate: -1,
+			ignoreUnits: this.ignoreUnits,
 			onPause: (res) => {
 				// We always need to do this, even if we paused the simulation, otherwise we cannot unpause
 				// Here is the only place we can get a handle to the simulationController
@@ -6861,6 +6914,7 @@ class RunResults {
 		setPauseInterval(getTimeStep());
 		runOverlay.block();
 		runModel({
+			ignoreUnits: this.ignoreUnits,
 			onPause: (res) => {
 				this.simulationDone = false;
 				this.storeResults(res);
@@ -9811,7 +9865,6 @@ class DefinitionEditor extends jqDialog {
 		this.valueField = $(this.dialogContent).find(".value-field").get(0);
 		this.nameField = $(this.dialogContent).find(".name-field").get(0);
     this.unitField = $(this.dialogContent).find("#unit-field").get(0);
-		console.log(this.unitField)
 		this.referenceDiv = $(this.dialogContent).find(".primitive-references-div").get(0);
 
 		/** @param {import("./functionCategories").FunctionDetails[]} functionList */
