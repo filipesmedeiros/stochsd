@@ -190,14 +190,20 @@ class History {
 
 	}
 
-	static storeUndoState() {
+  static storeUndoState() {
 		// Create new XML for state
 		let InsightMakerDocumentWriter = new InsightMakerDocument();
 		InsightMakerDocumentWriter.appendPrimitives();
-		let undoState = InsightMakerDocumentWriter.getXmlString();
+    let undoState = InsightMakerDocumentWriter.getXmlString();
+
+    // This means it's only the "Setting" and "Display" nodes,
+    // which means the model is empty
+    if (primitives().length === 2) return;
 
 		// Add to undo history if it is different then previous state
 		if (this.lastUndoState != undoState) {
+      $("#unsaved_changes").removeClass("hidden");
+      window.addEventListener("beforeunload", checkBeforeClose);
 			// Preserves only states from 0 to undoIndex
 			this.undoStates.splice(this.undoIndex + 1);
 
@@ -5808,6 +5814,9 @@ function hashUpdate() {
 	}
 }
 
+function checkBeforeClose(event) {
+  event.preventDefault()
+}
 
 // https://stackoverflow.com/questions/7083693/detect-if-page-has-finished-loading
 // Initilzing without everything load = $(document).ready caused bugs. $(window).load solves this
@@ -5978,9 +5987,12 @@ $(window).load(function () {
 			fileManager.loadModel();
 		});
 	});
-	$("#btn_save").click(function () {
-		History.storeUndoState();
-		fileManager.saveModel();
+  $("#btn_save").click(function () {
+    // Why was this here?
+		// History.storeUndoState();
+    fileManager.saveModel();
+    $("#unsaved_changes").addClass("hidden");
+    window.removeEventListener("beforeunload", checkBeforeClose);
 	});
 	$("#btn_save_as").click(function () {
 		History.storeUndoState();
@@ -6083,7 +6095,7 @@ $(window).load(function () {
   $("#btn_ignore_units").click(function () {
     $("#ignore_units-value").text(!RunResults.ignoreUnits ? "No" : "Yes");
     RunResults.setIgnoreUnits(!RunResults.ignoreUnits);
-	})
+  })
 	if (fileManager.hasSaveAs()) {
 		$("#btn_save_as").show();
 	}
@@ -7415,7 +7427,8 @@ function yesNoCancelAlert(message, closeHandler) {
 
 function saveChangedAlert(continueHandler) {
 	// If we have no unsaved changes we just continue directly
-	if (!History.unsavedChanges) {
+  if (!History.unsavedChanges) {
+    
 		continueHandler();
 		return;
 	}

@@ -273,6 +273,23 @@ button.tool-button img {
     font-size: 10px;
     color: var(--color-text-secondary);
 }
+#unsaved_changes {
+    height: 100%; 
+    vertical-align: top; 
+    font-family: Arial, Helvetica, sans-serif;
+    display: inline-block; 
+    border: unset;
+    border: 1px solid var(--color-warning-foreground);
+    background-color: var(--color-warning-background);
+    color: var(--color-warning-foreground);
+    padding-inline: 0.5rem;
+    box-sizing: border-box;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+}
+#unsaved_changes.hidden {
+    display: none;
+}
 button svg {
     border-width: 0px;
 }
