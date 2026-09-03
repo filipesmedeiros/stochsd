@@ -8,7 +8,15 @@
     "icon": "icons/stochsd.png"
   },
   "scripts": {
+    "dev": "vite",
+    "build": "npm run build:web && npm run build:desktop",
+    "build:web": "vite build",
+    "build:desktop": "node scripts/build-desktop.mjs",
+    "preview": "vite preview",
     "start": "nw .",
-    "deploy": "rsync -a ./OpenSystemDynamics/src/* uberspace_filipe1:~/www/ssd.systemika.org"
+    "deploy": "npm run build:web && bash scripts/deploy.sh"
+  },
+  "devDependencies": {
+    "vite": "^7.1.5"
   }
 }
