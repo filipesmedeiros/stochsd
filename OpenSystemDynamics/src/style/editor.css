@@ -199,6 +199,9 @@ button.tool-button img {
     opacity: 0.5;
     cursor: not-allowed;
 }
+#tools-menu-button.hidden {
+    display: none !important;
+}
 /* progress bar */
 #progress-bar {
     position: relative;

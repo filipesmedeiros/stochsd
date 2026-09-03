@@ -30,6 +30,8 @@ var fullPotentialCssDialog;
 var thirdPartyLicensesDialog;
 /** @type {LicenseDialog} */
 var licenseDialog;
+/** @type {DirectoryDialog} */
+let directoryDialog;
 
 const isMac = ["Macintosh", "MacIntel", "MacPPC", "Mac68K"].includes(window.navigator.platform);
 
@@ -5950,7 +5952,7 @@ $(window).load(function () {
 		} else if(!isDrawingFlow) {
       if (get_selected_ids().length === 0)
         if (event.key === ".")
-          document.querySelector("#tools-menu-button").style = "";
+          document.querySelector("#tools-menu-button").classList.toggle("hidden");
         else if (event.key === ",")
           RunResults.setIgnoreUnits(!RunResults.ignoreUnits)
       else if (event.key === "s") ToolBox.setTool("stock")
@@ -6068,6 +6070,9 @@ $(window).load(function () {
 	$("#btn_preferences").click(function () {
 		preferencesDialog.show();
 	});
+	$("#btn_directory").click(function () {
+		directoryDialog.show();
+	});
 	$("#btn_fullpotentialcss").click(function () {
 		fullPotentialCssDialog.show();
 	});
@@ -6125,6 +6130,7 @@ $(window).load(function () {
 	fullPotentialCssDialog = new FullPotentialCSSDialog();
 	thirdPartyLicensesDialog = new ThirdPartyLicensesDialog();
 	licenseDialog = new LicenseDialog();
+	directoryDialog = new DirectoryDialog();
 
 	// When the program is fully loaded we create a new model
 	//~ fileManager.newModel();
@@ -9532,6 +9538,17 @@ class FullPotentialCSSDialog extends CloseDialog {
 				event.preventDefault();
 			}
 		});
+	}
+}
+
+class DirectoryDialog extends CloseDialog {
+  constructor() {
+		super();
+		this.setTitle("Model directorty");
+ 
+		this.setHtml(`
+		test
+		`);
 	}
 }
 

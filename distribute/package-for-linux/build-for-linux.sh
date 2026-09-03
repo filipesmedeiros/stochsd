@@ -8,7 +8,7 @@ if ! test -d "../output/package.nw"; then
        exit 1
 fi
 
-NWJS_URL='https://dl.nwjs.io/v0.59.1/nwjs-sdk-v0.59.1-linux-x64.tar.gz'
+NWJS_URL='https://dl.nwjs.io/v0.115.0/nwjs-sdk-v0.115.0-linux-x64.tar.gz'
 NWJS_FILENAME=$(basename $NWJS_URL)
 NWJS_UNZIPPED_FILENAME=$(echo "${NWJS_FILENAME%.*.*}")
 

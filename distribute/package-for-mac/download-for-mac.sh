@@ -21,9 +21,9 @@ cd download
 
 
 # If file does not exist
-if [[ ! -f $NWJS_ZIP_NAME ]]
+if [[ ! -f $NWJS_FOLDER_NAME ]]
 then
-  curl -O $NWJS_URL
+  wget $NWJS_URL
 fi
 
-unzip $NWJS_ZIP_NAME -d ../output
+unzip $NWJS_FOLDER_NAME -d ../output
