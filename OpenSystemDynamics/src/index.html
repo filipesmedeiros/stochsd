@@ -26,6 +26,7 @@ terms of the Affero General Public License (http://www.gnu.org/licenses/agpl-3.0
 	<script type="text/javascript" src="preferences.js"></script>
 	<script type="text/javascript" src="settings.js"></script>
 	<script type="text/javascript" src="debug.js"></script>
+	<script type="text/javascript" src="model-storage.js"></script>
 	<!-- environment.js determines whatever to use web or NWJS. Must be executed early to work -->
 	<script type="text/javascript" src="environment.js"></script>
 	<script type="text/javascript" src="insightmaker/Localization.js"></script>
@@ -131,10 +132,19 @@ terms of the Affero General Public License (http://www.gnu.org/licenses/agpl-3.0
 							<button id="btn_save"><u>S</u>ave<span class="shortcut">Ctrl S</span></button>
 						</span>
 						<span>
-							<button id="btn_directory">Model directory</button>
+							<button id="btn_save_as" style="display: none;">Save As...</button>
 						</span>
 						<span>
-							<button id="btn_save_as" style="display: none;">Save As...</button>
+							<button id="btn_directory">Model directory</button>
+						</span>
+						<span class="menuSeparator">
+							<button id="btn_import" style="display: none;">Import from file...</button>
+						</span>
+						<span>
+							<button id="btn_export" style="display: none;">Export to file...</button>
+						</span>
+						<span>
+							<button id="btn_browser_models" style="display: none;">Models in Browser...</button>
 						</span>
 						<span id="recent_title" style="display: none">
 							<p>Recently Opened</p>
@@ -174,7 +184,7 @@ terms of the Affero General Public License (http://www.gnu.org/licenses/agpl-3.0
 						</span>
 					</div>
 				</div>
-				<div class="eMenu hideUnlessNwjs">
+				<div class="eMenu">
 					<button class="menuButton">View</button>
 					<div class="menuContent">
 						<span>

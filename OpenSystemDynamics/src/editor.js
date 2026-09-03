@@ -32,12 +32,37 @@ var thirdPartyLicensesDialog;
 var licenseDialog;
 /** @type {DirectoryDialog} */
 let directoryDialog;
+/** @type {BrowserModelsDialog} */
+let browserModelsDialog;
 
 const isMac = ["Macintosh", "MacIntel", "MacPPC", "Mac68K"].includes(window.navigator.platform);
+// The keyboard handler listens for Cmd on macOS and Ctrl elsewhere, so every
+// shortcut label has to say the same thing. CodeMirror's Ctrl-Space
+// autocomplete is deliberately left out of this: Cmd-Space is Spotlight.
+const modifierKey = isMac ? "Cmd" : "Ctrl";
 
-let currentViewBox = [0, 0, 6000, 2000];
-let currentZoom = 1;
-const ZOOM_STEP = 1.1;
+// Menu labels and tool tooltips are written with "Ctrl" in the markup, since
+// that is right everywhere except macOS. Rewrite them once at startup.
+function applyPlatformShortcutLabels() {
+	if (!isMac) {
+		return;
+	}
+	$(".shortcut").each(function () {
+		this.textContent = this.textContent.replace(/\bCtrl\b/g, modifierKey);
+	});
+	// Tool button tooltips, drawn by CSS from attr(data-title).
+	$("[data-title]").each(function () {
+		let title = this.getAttribute("data-title");
+		if (title.includes("Ctrl")) {
+			this.setAttribute("data-title", title.replace(/\bCtrl\b/g, modifierKey));
+		}
+	});
+}
+
+// The drawing area, in canvas coordinates. Matches the width and height the
+// svg is authored with in index.html.
+const CANVAS_WIDTH = 6000;
+const CANVAS_HEIGHT = 2000;
 
 // This values are not used by StochSD, as primitives cannot be resized in StochSD
 // They are only used for exporting the model to Insight Maker
@@ -110,9 +135,28 @@ function applicationReload() {
 	location.reload();
 }
 
+// Called once a save of any kind has actually succeeded. Cancelling a save
+// dialog must not reach this, or the model looks saved when it is not.
+function markModelSaved() {
+	History.unsavedChanges = false;
+	$("#unsaved_changes").addClass("hidden");
+	window.removeEventListener("beforeunload", checkBeforeClose);
+}
+
+// Save into browser storage. Once a model has a name there, Save just
+// overwrites it; before that we have to ask what to call it.
+function saveModelToBrowser() {
+	if (fileManager.storedModelName === null) {
+		browserModelsDialog.showForSaveAs();
+		return;
+	}
+	browserModelsDialog.storeModel(fileManager.storedModelName);
+}
+
 function preserveRestart() {
 	History.toLocalStorage();
 	localStorage.setItem("fileName", fileManager.fileName);
+	localStorage.setItem("storedModelName", fileManager.storedModelName ?? "");
 	localStorage.setItem("reloadPending", "1");
 	applicationReload();
 }
@@ -141,10 +185,11 @@ function restoreAfterRestart() {
 	localStorage.removeItem("reloadPending");
 
 	fileManager.fileName = localStorage.getItem("fileName");
+	// Empty means the model is not in browser storage, so Save must ask for a name.
+	fileManager.storedModelName = localStorage.getItem("storedModelName") || null;
 	fileManager.updateTitle();
 
 	do_global_log("restore the file");
-	fileManager.fileName = localStorage.getItem("fileName");
 
 	// Read the history from localStorage
 	History.fromLocalStorage();
@@ -5543,6 +5588,79 @@ function update_name_pos(node_id) {
 	}
 }
 
+// Canvas zoom.
+//
+// The svg is drawn at CANVAS_WIDTH x CANVAS_HEIGHT inside a scrolling
+// container. Zooming scales the svg element while a viewBox keeps the drawing
+// mapped onto it, so the existing scrolling and panning keep working and one
+// canvas unit is simply `level` screen pixels.
+class Zoom {
+	static level = 1;
+	static STEP = 1.1;
+	// Far enough in to work on a single primitive; past this it is not useful.
+	static MAX = 4;
+
+	static init() {
+		// Without a viewBox, resizing the element would crop rather than scale.
+		SVG.svgElement.setAttribute("viewBox", `0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`);
+		this.apply();
+		// A wider window can show the whole canvas at a smaller level than before.
+		$(window).on("resize", () => this.setLevel(this.level));
+	}
+
+	static get view() {
+		return SVG.svgElement.parentElement;
+	}
+
+	// The level at which the whole canvas is visible. Zooming out stops here.
+	static minLevel() {
+		let view = this.view;
+		if (!view || view.clientWidth === 0) {
+			return 1;
+		}
+		return Math.min(view.clientWidth / CANVAS_WIDTH, view.clientHeight / CANVAS_HEIGHT);
+	}
+
+	static zoomIn() {
+		this.setLevel(this.level * this.STEP);
+	}
+	static zoomOut() {
+		this.setLevel(this.level / this.STEP);
+	}
+	static zoomReset() {
+		this.setLevel(1);
+	}
+
+	// Keeps whatever is in the middle of the view in the middle of the view.
+	static setLevel(newLevel) {
+		let view = this.view;
+		let level = Math.min(Math.max(newLevel, this.minLevel()), this.MAX);
+		if (level === this.level) {
+			return;
+		}
+
+		// Canvas point currently at the centre of the visible area.
+		let centreX = (view.scrollLeft + view.clientWidth / 2) / this.level;
+		let centreY = (view.scrollTop + view.clientHeight / 2) / this.level;
+
+		this.level = level;
+		this.apply();
+
+		view.scrollLeft = centreX * level - view.clientWidth / 2;
+		view.scrollTop = centreY * level - view.clientHeight / 2;
+	}
+
+	static apply() {
+		SVG.svgElement.setAttribute("width", CANVAS_WIDTH * this.level);
+		SVG.svgElement.setAttribute("height", CANVAS_HEIGHT * this.level);
+	}
+
+	// Screen pixels measured from the svg's top left, to canvas coordinates.
+	static toCanvas(pixels) {
+		return pixels / this.level;
+	}
+}
+
 class MousePan {
 	/** @type {{x: number, y: number}} */
 	static downAt;
@@ -5556,13 +5674,33 @@ class MousePan {
 		SVG.svgElement.classList.add("panning")
 	}
 	static move(x, y) {
-		SVG.svgElement.parentElement.scrollBy(this.downAt.x - x, this.downAt.y - y);
+		// downAt and the incoming position are canvas coordinates; scrolling is
+		// in screen pixels. scrollBy is relative to the current scroll position,
+		// so the reference point must walk forward each call or the same delta
+		// gets re-applied on top of itself every event.
+		SVG.svgElement.parentElement.scrollBy(
+			(this.downAt.x - x) * Zoom.level,
+			(this.downAt.y - y) * Zoom.level
+		);
+		this.downAt = {x, y};
 	}
 	static end() {
 		SVG.svgElement.classList.remove("panning")
 		this.middleIsDown = false;
 	}
  }
+
+// Pointer position in canvas coordinates, which is what every tool works in.
+function mousePosition(event) {
+	// clientX/clientY + getBoundingClientRect are both viewport-relative, so
+	// this is correct regardless of whether the page itself is scrolled —
+	// pageX/offset() would also need window.scrollX/Y to stay in lockstep.
+	let rect = SVG.svgElement.getBoundingClientRect();
+	return {
+		x: Zoom.toCanvas(event.clientX - rect.left),
+		y: Zoom.toCanvas(event.clientY - rect.top)
+	};
+}
 
 function mouseDownHandler(event) {
 	do_global_log("mouseDownHandler");
@@ -5571,9 +5709,7 @@ function mouseDownHandler(event) {
 		timeUnitDialog.show();
 		return;
 	}
-	let offset = $(SVG.svgElement).offset();
-	let x = event.pageX - offset.left;
-	let y = event.pageY - offset.top;
+	let { x, y } = mousePosition(event);
 	do_global_log("x:" + x + " y:" + y);
 	switch (event.which) {
 		case mouse.left:
@@ -5592,9 +5728,7 @@ function mouseDownHandler(event) {
 	}
 }
 function mouseMoveHandler(event) {
-	let offset = $(SVG.svgElement).offset();
-	let x = event.pageX - offset.left;
-	let y = event.pageY - offset.top;
+	let { x, y } = mousePosition(event);
 
 	mouse.x = x;
 	mouse.y = y;
@@ -5614,9 +5748,7 @@ function mouseUpHandler(event) {
 		}
 		// does not work to store UndoState here, because mouseUpHandler happens even when we are outside the svg (click buttons etc)
 		do_global_log("mouseUpHandler");
-		let offset = $(SVG.svgElement).offset();
-		let x = event.pageX - offset.left;
-		let y = event.pageY - offset.top;
+		let { x, y } = mousePosition(event);
 
 		currentTool.leftMouseUp(x, y, event.shiftKey);
 		mouse.isLeftDown = false;
@@ -5835,6 +5967,7 @@ $(window).load(function () {
 	DragAndDrop.init();
 	SVG.init()
 	MousePan.init()
+	Zoom.init()
 	RectSelector.init();
 	Preferences.setup();
 
@@ -5880,34 +6013,23 @@ $(window).load(function () {
 			event.preventDefault();
     }
 		if ((!isMac && event.ctrlKey) || (isMac && event.metaKey)) {
-      // if (event.key === "-") {
-      //   const svg = document.querySelector("#svgplane");
-      //   // const svgBg = document.querySelector("#svgplanebackground");
-      //   // const currentLeft = currentViewBox[0] + svgBg.scrollTop * currentZoom;
-      //   // const currentTop = currentViewBox[1] + svgBg.scrollLeft * currentZoom;
-      //   // const currentRight = currentLeft + svgBg.offsetWidth * currentZoom;
-      //   // const currentBottom = currentTop + svgBg.offsetHeight * currentZoom;
-      //   // const currentCentre = [(currentRight - currentLeft) / 2, (currentBottom - currentTop) / 2];
-      //   // const distsToCentre = [
-      //   //   currentCentre[0] - currentLeft,
-      //   //   currentCentre[1] - currentTop,
-      //   //   currentCentre[0] - currentRight,
-      //   //   currentCentre[1] - currentBottom,
-      //   //   ];
-      //   currentViewBox[2] *= ZOOM_STEP;
-      //   currentViewBox[3] *= ZOOM_STEP;
-      //   currentZoom /= ZOOM_STEP;
-      //   svg.setAttribute("viewBox", currentViewBox.join(" "));
-      //   event.preventDefault();
-      // }
-      // if (event.key === "+") {
-      //   const svg = document.querySelector("#svgplane");
-      //   currentViewBox[2] /= ZOOM_STEP;
-      //   currentViewBox[3] /= ZOOM_STEP;
-      //   currentZoom *= ZOOM_STEP;
-      //   svg.setAttribute("viewBox", currentViewBox.join(" "));
-      //   event.preventDefault();
-      // }
+			// Canvas zoom, replacing the browser's own page zoom. "=" and "_" are
+			// the unshifted keys that carry "+" and "-" on most layouts.
+			if (event.key === "+" || event.key === "=") {
+				event.preventDefault();
+				Zoom.zoomIn();
+				return;
+			}
+			if (event.key === "-" || event.key === "_") {
+				event.preventDefault();
+				Zoom.zoomOut();
+				return;
+			}
+			if (event.key === "0") {
+				event.preventDefault();
+				Zoom.zoomReset();
+				return;
+			}
 			if (event.key == "1" || event.key.toLowerCase() == "r") {
 				event.preventDefault();
 				RunTool.enterTool();
@@ -5992,13 +6114,21 @@ $(window).load(function () {
   $("#btn_save").click(function () {
     // Why was this here?
 		// History.storeUndoState();
+    // The unsaved marker is cleared by markModelSaved() once the save actually
+    // goes through — a cancelled save must leave it showing.
     fileManager.saveModel();
-    $("#unsaved_changes").addClass("hidden");
-    window.removeEventListener("beforeunload", checkBeforeClose);
 	});
 	$("#btn_save_as").click(function () {
 		History.storeUndoState();
 		fileManager.saveModelAs();
+	});
+	$("#btn_import").click(function () {
+		saveChangedAlert(function () {
+			fileManager.importModel();
+		});
+	});
+	$("#btn_export").click(function () {
+		fileManager.exportModel();
 	});
 	$("#btn_recent_clear").click(function () {
 		yesNoAlert("Are you sure you want to clear Recent List?", (answer) => {
@@ -6073,6 +6203,9 @@ $(window).load(function () {
 	$("#btn_directory").click(function () {
 		directoryDialog.show();
 	});
+	$("#btn_browser_models").click(function () {
+		browserModelsDialog.show();
+	});
 	$("#btn_fullpotentialcss").click(function () {
 		fullPotentialCssDialog.show();
 	});
@@ -6101,8 +6234,29 @@ $(window).load(function () {
     $("#ignore_units-value").text(!RunResults.ignoreUnits ? "No" : "Yes");
     RunResults.setIgnoreUnits(!RunResults.ignoreUnits);
   })
+	$("#btn_zoom_in").click(function () {
+		Zoom.zoomIn();
+	});
+	$("#btn_zoom_out").click(function () {
+		Zoom.zoomOut();
+	});
+	$("#btn_zoom_reset").click(function () {
+		Zoom.zoomReset();
+	});
+
+	applyPlatformShortcutLabels();
 	if (fileManager.hasSaveAs()) {
 		$("#btn_save_as").show();
+	}
+	if (fileManager.usesBrowserStorage()) {
+		// Save and Open work on browser storage here, so files are reached through
+		// Import and Export instead.
+		$("#btn_import").show();
+		$("#btn_export").show();
+	} else {
+		// Files are already what Save and Open mean, so browser storage is offered
+		// as a second place to keep models rather than as the default.
+		$("#btn_browser_models").show();
 	}
 	if (fileManager.hasRecentFiles()) {
 		for (let i = 0; i < Settings.MaxRecentFiles; i++) {
@@ -6131,6 +6285,7 @@ $(window).load(function () {
 	thirdPartyLicensesDialog = new ThirdPartyLicensesDialog();
 	licenseDialog = new LicenseDialog();
 	directoryDialog = new DirectoryDialog();
+	browserModelsDialog = new BrowserModelsDialog();
 
 	// When the program is fully loaded we create a new model
 	//~ fileManager.newModel();
@@ -9207,7 +9362,7 @@ class ConverterDialog extends jqDialog {
 				<li>${keyHtml("Esc")} &rarr; Cancels changes</li>
 				<li>${keyHtml("Enter")} &rarr; Applies changes</li>
 				<li>${keyHtml(["Shift", "Enter"])} &rarr; Adds new line</li>
-				<li>${keyHtml(["Ctrl", "v"])} &rarr; Paste (you can paste two columns from spreadsheet program)</li>
+				<li>${keyHtml([modifierKey, "v"])} &rarr; Paste (you can paste two columns from spreadsheet program)</li>
 			</ul>
 			${noteHtml("Comments are not allowed in the converter.")}
 		</div>
@@ -9544,11 +9699,198 @@ class FullPotentialCSSDialog extends CloseDialog {
 class DirectoryDialog extends CloseDialog {
   constructor() {
 		super();
-		this.setTitle("Model directorty");
+		this.setTitle("Model directory");
  
 		this.setHtml(`
 		test
 		`);
+	}
+}
+
+function htmlEscape(text) {
+	return String(text)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;");
+}
+
+class BrowserModelsDialog extends jqDialog {
+	constructor() {
+		super();
+		this.setTitle("Models in Browser");
+		this.size = [640, 480];
+		// When true the name field is focused, for "Save As" rather than browsing.
+		this.saveAsMode = false;
+	}
+	beforeCreateDialog() {
+		this.dialogParameters.buttons = {
+			"Close": () => {
+				$(this.dialog).dialog('close');
+			}
+		};
+	}
+	beforeShow() {
+		this.render();
+	}
+	afterShow() {
+		if (this.saveAsMode) {
+			$(this.dialogContent).find(".input-model-name").focus().select();
+			this.saveAsMode = false;
+		}
+	}
+	showForSaveAs() {
+		this.saveAsMode = true;
+		this.show();
+	}
+	render() {
+		let models = ModelStorage.list();
+
+		let rows = models.map((model) => `
+			<tr>
+				<td>${htmlEscape(model.name)}</td>
+				<td>${new Date(model.savedAt).toLocaleString()}</td>
+				<td style="text-align: right;">${Math.max(1, Math.round(model.size / 1024))} kB</td>
+				<td style="padding:1px; white-space: nowrap;">
+					<button class="btn-load-model" data-name="${htmlEscape(model.name)}">Open</button>
+					<button class="btn-delete-model" data-name="${htmlEscape(model.name)}">Delete</button>
+				</td>
+			</tr>
+		`).join("");
+
+		if (models.length === 0) {
+			rows = `<tr><td colspan="4" style="text-align: center;">No models stored in this browser yet.</td></tr>`;
+		}
+
+		this.setHtml(`
+		<div style="min-width: 560px;">
+			<table class="modern-table zebra" style="width: 100%;">
+			<tr>
+				<th style="text-align: left;">Name</th>
+				<th style="text-align: left;">Saved</th>
+				<th style="text-align: right;">Size</th>
+				<th></th>
+			</tr>
+			${rows}
+			</table>
+			<br/>
+			<table class="modern-table" style="width: 100%;">
+			<tr>
+				<td>Save current model as</td>
+				<td style="padding:1px;">
+					<input class="input-model-name enter-apply" style="width: 240px;" type="text" value="${htmlEscape(this.suggestedName())}"/>
+				</td>
+				<td style="padding:1px;"><button class="btn-save-model">Save</button></td>
+			</tr>
+			</table>
+			<p style="color: #666;">
+				Models stored here stay in this browser on this computer. Clearing your
+				browser data removes them, so keep a file copy of anything important.
+			</p>
+		</div>
+		`);
+
+		$(this.dialogContent).find(".btn-save-model").click(() => {
+			this.saveCurrentModel();
+		});
+		$(this.dialogContent).find(".btn-load-model").click((event) => {
+			this.loadModel($(event.target).data("name"));
+		});
+		$(this.dialogContent).find(".btn-delete-model").click((event) => {
+			this.deleteModel($(event.target).data("name"));
+		});
+		this.bindEnterApplyEvents();
+	}
+	// Enter in the name field saves, matching the other dialogs.
+	applyChanges() {
+		this.saveCurrentModel();
+	}
+	suggestedName() {
+		if (fileManager.storedModelName !== null) {
+			return fileManager.storedModelName;
+		}
+		// Reuse the open file's name without its extension, so saving a model that
+		// came from disk keeps a recognisable name.
+		let fileName = fileManager.fileName;
+		if (!fileName) {
+			return "";
+		}
+		let baseName = fileName.split(/[\\/]/).pop();
+		return baseName.replace(new RegExp(Settings.fileExtension + "$", "i"), "");
+	}
+	saveCurrentModel() {
+		let name = $(this.dialogContent).find(".input-model-name").val().trim();
+		if (name === "") {
+			xAlert("Enter a name for the model.");
+			return;
+		}
+		if (ModelStorage.exists(name)) {
+			yesNoAlert(`A model named "${htmlEscape(name)}" is already stored. Replace it?`, (answer) => {
+				if (answer === "yes") {
+					this.storeModel(name);
+				}
+			});
+			return;
+		}
+		this.storeModel(name);
+	}
+	storeModel(name) {
+		try {
+			ModelStorage.save(name, createModelFileData());
+		} catch (error) {
+			xAlert(error.message);
+			return;
+		}
+		// The model now lives under this name, so a later Save overwrites it
+		// instead of asking again.
+		fileManager.storedModelName = name;
+		fileManager.fileName = name;
+		markModelSaved();
+		fileManager.updateSaveTime();
+		fileManager.updateTitle();
+		if (this.visible) {
+			this.render();
+		}
+		// Whoever asked to save before closing or opening something else.
+		if (fileManager.finishedSaveHandler) {
+			let handler = fileManager.finishedSaveHandler;
+			fileManager.finishedSaveHandler = null;
+			handler();
+		}
+	}
+	loadModel(name) {
+		if (History.unsavedChanges) {
+			yesNoAlert("You have unsaved changes that will be lost. Open anyway?", (answer) => {
+				if (answer === "yes") {
+					this.applyLoad(name);
+				}
+			});
+			return;
+		}
+		this.applyLoad(name);
+	}
+	applyLoad(name) {
+		let modelData = ModelStorage.load(name);
+		if (modelData === null) {
+			xAlert(`Could not find a stored model named "${name}".`);
+			this.render();
+			return;
+		}
+		fileManager.fileName = name;
+		fileManager.storedModelName = name;
+		// Same route the file loaders take: stash the model and restart, so the
+		// whole editor is rebuilt from it.
+		History.forceCustomUndoState(modelData);
+		fileManager.updateTitle();
+		preserveRestart();
+	}
+	deleteModel(name) {
+		yesNoAlert(`Delete the stored model "${htmlEscape(name)}"?`, (answer) => {
+			if (answer === "yes") {
+				ModelStorage.remove(name);
+				this.render();
+			}
+		});
 	}
 }
 

@@ -126,8 +126,17 @@ class NwZoomController {
 class BaseFileManager {
   constructor() {
     this._fileName = "";
+    // Name this model has in browser storage, or null if it is not stored there.
+    this.storedModelName = null;
     this.lastSaved = null;
     this.softwareName = appName;
+  }
+  // True where the environment cannot properly write files, so models live in
+  // browser storage by default and files are only used for import/export.
+  // Where this is false, Save and Open keep working on real files and browser
+  // storage is offered as a secondary place to keep models.
+  usesBrowserStorage() {
+    return false;
   }
   // This is executed when the document is ready
   ready() {
@@ -137,6 +146,7 @@ class BaseFileManager {
   newModel() {
     localStorage.removeItem("reloadPending");
     this._fileName = "";
+    this.storedModelName = null;
     this.updateTitle();
     applicationReload();
   }
@@ -159,12 +169,37 @@ class BaseFileManager {
     // Only exportFile is implementation specific (different on nwjs and electron)
     this.exportFile(fileData, Settings.fileExtension, (filePath) => {
       this.fileName = filePath;
-      History.unsavedChanges = false;
+      markModelSaved();
       this.updateSaveTime();
       this.updateTitle();
       if (this.finishedSaveHandler) {
         this.finishedSaveHandler();
       }
+    });
+  }
+  // Writing the model out to a file. Where Save already means "to a file" this
+  // is the same operation, so the menu only offers it separately when browser
+  // storage has taken over Save.
+  exportModel() {
+    this.saveModelAs();
+  }
+  // Reading a model in from a file, without it becoming the save target.
+  // openFile comes from insightmaker/API/API.js.
+  async importModel() {
+    openFile({
+      read: "text",
+      multiple: false,
+      accept: Settings.fileExtension,
+      onCompleted: (model) => {
+        this.fileName = model.name;
+        // Imported from a file, so there is no browser-storage entry behind it
+        // yet and a following Save has to ask for a name.
+        this.storedModelName = null;
+        do_global_log("web load file call  back");
+        History.forceCustomUndoState(model.contents);
+        this.updateTitle();
+        preserveRestart();
+      },
     });
   }
   hasSaveAs() {
@@ -236,6 +271,18 @@ class BaseFileManager {
   get fileName() {
     return this._fileName;
   }
+  // A reasonable filename to suggest for this model, without its extension —
+  // whatever it's currently known as, falling back to a generic name.
+  defaultExportBaseName() {
+    if (this.storedModelName) {
+      return this.storedModelName;
+    }
+    if (this.fileName) {
+      let baseName = this.fileName.split(/[\\/]/).pop();
+      return baseName.replace(new RegExp(Settings.fileExtension + "$", "i"), "");
+    }
+    return "model";
+  }
   appendFileExtension(filename, extension) {
     var extension_position = filename.length - extension.length;
     var current_extension = filename.substring(
@@ -253,6 +300,8 @@ class BaseFileManager {
     reader.onload = (event) => {
       const contents = event.target.result;
       this.fileName = file.name;
+      // Dropped in from disk, so it has no browser-storage entry behind it yet.
+      this.storedModelName = null;
       console.log("load event.target", event.target);
 
       do_global_log("web load file call  back");
@@ -294,51 +343,49 @@ class WebFileManagerBasic extends BaseFileManager {
       a.remove();
     }, 1);
   }
+  // This environment can only hand the user a download, never write back to a
+  // file they opened, so models are kept in browser storage instead and files
+  // are reached through Import and Export.
+  usesBrowserStorage() {
+    return true;
+  }
+  hasSaveAs() {
+    return true;
+  }
   saveModel() {
+    saveModelToBrowser();
+  }
+  saveModelAs() {
+    browserModelsDialog.showForSaveAs();
+  }
+  async loadModel() {
+    browserModelsDialog.show();
+  }
+  exportModel() {
     let fileData = createModelFileData();
 
     this.exportFile(fileData, Settings.fileExtension, () => {
       this.updateSaveTime();
       this.updateTitle();
-      History.unsavedChanges = false;
       if (this.finishedSaveHandler) {
         this.finishedSaveHandler();
       }
     });
   }
+  // There is no File System Access API here (that's why this file manager was
+  // chosen), so a real native picker isn't available — the closest thing is
+  // the browser's own download flow, which opens a native save dialog when
+  // the browser is set to ask where to save each file. Either way this beats
+  // a prompt() box, which never offered a location picker to begin with.
   exportFile(dataToSave, fileExtension, onSuccess) {
     if (onSuccess == undefined) {
       // On success is optoinal, so if it was not set we set it to an empty function
       onSuccess = () => { };
     }
 
-    var fileName = prompt("Filename:", fileExtension);
-    if (fileName == null) {
-      return;
-    }
-    const exportFileName = this.appendFileExtension(fileName, fileExtension);
-    // Wrapper so that also web application can save files (csv and other)
+    const exportFileName = this.appendFileExtension(this.defaultExportBaseName(), fileExtension);
     this.download(exportFileName, dataToSave);
-    if (onSuccess) {
-      onSuccess(exportFileName);
-    }
-  }
-  async loadModel() {
-    openFile({
-      read: "text",
-      multiple: false,
-      accept: Settings.fileExtension,
-      onCompleted: (model) => {
-        this.fileName = model.name;
-        //~ this.loadModelData(model.contents);
-
-        do_global_log("web load file call  back");
-        var fileData = model.contents;
-        History.forceCustomUndoState(fileData);
-        this.updateTitle();
-        preserveRestart();
-      },
-    });
+    onSuccess(exportFileName);
   }
 }
 
@@ -447,7 +494,7 @@ class WebFileManagerModern extends BaseFileManager {
   async updateUIAfterSave() {
     this.updateSaveTime();
     this.updateTitle();
-    History.unsavedChanges = false;
+    markModelSaved();
     if (this.finishedSaveHandler) {
       this.finishedSaveHandler();
     }
@@ -581,7 +628,7 @@ class ElectronFileManager extends BaseFileManager {
   async doSaveModel(fileName) {
     let fileData = createModelFileData();
     this.writeFile(this.fileName, fileData);
-    History.unsavedChanges = false;
+    markModelSaved();
     this.updateSaveTime();
     this.updateTitle();
   }
@@ -830,7 +877,7 @@ class NwFileManager extends BaseFileManager {
     let fileData = createModelFileData();
     this.writeFilePromise(this.fileName, fileData)
       .then((filePath) => {
-        History.unsavedChanges = false;
+        markModelSaved();
         this.updateSaveTime();
         this.updateTitle();
         this.addToRecent(filePath);
@@ -849,7 +896,7 @@ class NwFileManager extends BaseFileManager {
     // Only exportFile is implementation specific (different on nwjs and electron)
     this.exportFile(fileData, Settings.fileExtension, (filePath) => {
       this.fileName = filePath;
-      History.unsavedChanges = false;
+      markModelSaved();
       this.addToRecent(this.fileName);
       this.updateSaveTime();
       this.updateTitle();
@@ -982,15 +1029,9 @@ class NwEnvironment extends BaseEnvironment {
     NwZoomController.init();
   }
   ready() {
-    $("#btn_zoom_in").click(function () {
-      NwZoomController.zoomIn();
-    });
-    $("#btn_zoom_out").click(function () {
-      NwZoomController.zoomOut();
-    });
-    $("#btn_zoom_reset").click(function () {
-      NwZoomController.zoomReset();
-    });
+    // The View menu zoom buttons drive the canvas zoom in every environment now;
+    // they are bound centrally in editor.js. NwZoomController still sets the
+    // desktop window's own scale at startup, which is a separate thing.
     $(".hideUnlessNwjs").removeClass("hideUnlessNwjs");
   }
   keyDown(event) {
