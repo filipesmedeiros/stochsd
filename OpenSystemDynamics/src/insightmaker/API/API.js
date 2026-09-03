@@ -2522,8 +2522,8 @@ function getSize(primitive) {
 			let widthItem = geometry.getNamedItem("width");
 			let heightItem = geometry.getNamedItem("height");
 			if (widthItem && heightItem) {
-				let width = parseInt(widthItem.value);
-				let height = parseInt(heightItem.value);
+				let width = parseFloat(widthItem.value);
+				let height = parseFloat(heightItem.value);
 				return [width, height];
 			} else {
 				return [0, 0];
@@ -2596,12 +2596,12 @@ function getPosition(primitive) {
 
 				var leftSide = 0;
 				if(geometry.getNamedItem("x")) {
-					leftSide = parseInt(geometry.getNamedItem("x").value);
+					leftSide = parseFloat(geometry.getNamedItem("x").value);
 				}
 
 				var topSide = 0;
 				if(geometry.getNamedItem("y")) {
-					topSide = parseInt(geometry.getNamedItem("y").value);
+					topSide = parseFloat(geometry.getNamedItem("y").value);
 				}
 				// Try it with
 				// a=getPosition(findName("S"));

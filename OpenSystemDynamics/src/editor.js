@@ -172,7 +172,18 @@ function restoreAfterRestart() {
 		// Clean up file manager - file handle
 		fileManager.clean();
 
-		if (Preferences.get("promptTimeUnitDialogOnStart") && isTimeUnitOk(getTimeUnits()) === false) {
+		// Set by startNewModel() so this particular reload lands on the time unit
+		// dialog directly instead of showing the picker it was triggered from.
+		let skipStartupPicker = localStorage.getItem("skipStartupPicker");
+		localStorage.removeItem("skipStartupPicker");
+
+		if (skipStartupPicker) {
+			timeUnitDialog.show();
+		} else if (environment instanceof WebEnvironment) {
+			// The web app has nothing open yet on a fresh load, so start at the
+			// model picker rather than an empty, unitless canvas.
+			browserModelsDialog.showAtStartup();
+		} else if (Preferences.get("promptTimeUnitDialogOnStart") && isTimeUnitOk(getTimeUnits()) === false) {
 			// if creating new file without OK timeUnit => promt TimeUnitDialog
 			// prompt TimeUnitDialog is unit not set
 			timeUnitDialog.show();
@@ -6232,6 +6243,7 @@ $(window).load(function () {
   })
   $("#btn_ignore_units").click(function () {
     $("#ignore_units-value").text(!RunResults.ignoreUnits ? "No" : "Yes");
+    $("#ignore_units-value").toggleClass("warning")
     RunResults.setIgnoreUnits(!RunResults.ignoreUnits);
   })
 	$("#btn_zoom_in").click(function () {
@@ -9722,9 +9734,16 @@ class BrowserModelsDialog extends jqDialog {
 		this.size = [640, 480];
 		// When true the name field is focused, for "Save As" rather than browsing.
 		this.saveAsMode = false;
+		// When true this is the startup landing page, so nothing has been drawn
+		// yet: "New Model" can skip straight to the time unit dialog instead of
+		// going through the usual discard-and-reload flow.
+		this.startupPrompt = false;
 	}
 	beforeCreateDialog() {
 		this.dialogParameters.buttons = {
+			"New Model": () => {
+				this.startNewModel();
+			},
 			"Close": () => {
 				$(this.dialog).dialog('close');
 			}
@@ -9739,9 +9758,39 @@ class BrowserModelsDialog extends jqDialog {
 			this.saveAsMode = false;
 		}
 	}
+	afterClose() {
+		// Closing without picking anything (Close button, Esc) means this is no
+		// longer a fresh, empty canvas as far as a later "New Model" click should
+		// assume — only the startup-triggered show, closed without reloading in
+		// between, gets the fast path.
+		this.startupPrompt = false;
+	}
 	showForSaveAs() {
 		this.saveAsMode = true;
 		this.show();
+	}
+	// Shown automatically when the web app is opened with nothing pending to
+	// restore, so this is the first thing the user sees.
+	showAtStartup() {
+		this.startupPrompt = true;
+		this.show();
+	}
+	startNewModel() {
+		if (this.startupPrompt) {
+			this.startupPrompt = false;
+			$(this.dialog).dialog('close');
+			timeUnitDialog.show();
+			return;
+		}
+		// A model may already be open and edited, so this goes through the same
+		// unsaved-changes check and reset as File > New.
+		$(this.dialog).dialog('close');
+		saveChangedAlert(() => {
+			// newModel() reloads, which would otherwise land back on this same
+			// picker; skip it once so New Model always reaches the time unit dialog.
+			localStorage.setItem("skipStartupPicker", "1");
+			fileManager.newModel();
+		});
 	}
 	render() {
 		let models = ModelStorage.list();
@@ -9752,8 +9801,8 @@ class BrowserModelsDialog extends jqDialog {
 				<td>${new Date(model.savedAt).toLocaleString()}</td>
 				<td style="text-align: right;">${Math.max(1, Math.round(model.size / 1024))} kB</td>
 				<td style="padding:1px; white-space: nowrap;">
-					<button class="btn-load-model" data-name="${htmlEscape(model.name)}">Open</button>
-					<button class="btn-delete-model" data-name="${htmlEscape(model.name)}">Delete</button>
+					<button class="btn-load-model ui-button ui-corner-all ui-widget" data-name="${htmlEscape(model.name)}">Open</button>
+					<button class="btn-delete-model ui-button ui-corner-all ui-widget" data-name="${htmlEscape(model.name)}">Delete</button>
 				</td>
 			</tr>
 		`).join("");
@@ -9780,7 +9829,7 @@ class BrowserModelsDialog extends jqDialog {
 				<td style="padding:1px;">
 					<input class="input-model-name enter-apply" style="width: 240px;" type="text" value="${htmlEscape(this.suggestedName())}"/>
 				</td>
-				<td style="padding:1px;"><button class="btn-save-model">Save</button></td>
+				<td style="padding:1px;"><button class="btn-save-model ui-button ui-corner-all ui-widget">Save</button></td>
 			</tr>
 			</table>
 			<p style="color: #666;">
