@@ -119,12 +119,26 @@ function createWindow() {
 
 	// Unsaved changes are checked in the renderer (History.unsavedChanges), so
 	// closing has to round-trip through it rather than happen here directly.
+	// The listener for this lives in environment.js, which runs inside
+	// #SimulationIFrame (OpenSystemDynamics), not the top-level document — so
+	// this has to be targeted at that sub-frame explicitly. webContents.send()
+	// only reaches the main frame and the message would otherwise be dropped,
+	// leaving the window unable to close.
 	mainWindow.on("close", (event) => {
 		if (readyToClose) {
 			return;
 		}
 		event.preventDefault();
-		mainWindow.webContents.send("window:try-close");
+		let targetFrame = mainWindow.webContents.mainFrame.framesInSubtree.find(
+			(frame) => frame.url.includes("OpenSystemDynamics")
+		);
+		if (targetFrame) {
+			targetFrame.send("window:try-close");
+		} else {
+			// Sub-frame not loaded yet, so nothing is tracking unsaved changes.
+			readyToClose = true;
+			mainWindow.close();
+		}
 	});
 
 	mainWindow.confirmClose = () => {

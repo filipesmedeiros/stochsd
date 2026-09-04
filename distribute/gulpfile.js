@@ -3,6 +3,12 @@ const useref = require('gulp-useref');
 const rename = require('gulp-rename');
 const process = require('process');
 
+// gulp 5's vinyl-fs defaults to transcoding every file through UTF-8 (both on
+// read and write), which silently corrupts binary files (PNGs, icons, etc).
+// Passing this to every gulp.src()/gulp.dest() call disables that and copies
+// raw bytes instead. See https://github.com/gulpjs/vinyl-fs#optionsencoding
+const RAW = { encoding: false };
+
 function getStochSDVersion() {
 	var fs = require("fs");
 	process.chdir(__dirname)
@@ -31,105 +37,101 @@ gulp.task('default' , function(done) {
 
 function copyLicenses(destFolder) {
 	// License
-	gulp.src('OpenSystemDynamics/src/license.html')
-	.pipe(gulp.dest(destFolder));
+	gulp.src('OpenSystemDynamics/src/license.html', RAW)
+	.pipe(gulp.dest(destFolder, RAW));
 
 	// Third party licenses
-	gulp.src('OpenSystemDynamics/src/third-party-licenses.html')
-	.pipe(gulp.dest(destFolder));
+	gulp.src('OpenSystemDynamics/src/third-party-licenses.html', RAW)
+	.pipe(gulp.dest(destFolder, RAW));
 }
 
 function buildForDesktop(destFolder) {
 
 	// License
-	gulp.src('LICENSE.txt')
-	.pipe(gulp.dest(destFolder));
+	gulp.src('LICENSE.txt', RAW)
+	.pipe(gulp.dest(destFolder, RAW));
 
 	// Launcher
-	gulp.src('start.html')
-	.pipe(gulp.dest(destFolder));
+	gulp.src('start.html', RAW)
+	.pipe(gulp.dest(destFolder, RAW));
 
 	// package.json. Needed for running "electron ." in the output folder, and
 	// read by electron-builder when packaging it.
-	gulp.src('package.json')
-	.pipe(gulp.dest(destFolder));
+	gulp.src('package.json', RAW)
+	.pipe(gulp.dest(destFolder, RAW));
 
 	// Electron main process + preload bridge
-	gulp.src('electron/**')
-	.pipe(gulp.dest(destFolder+'/electron'));
+	gulp.src('electron/**', RAW)
+	.pipe(gulp.dest(destFolder+'/electron', RAW));
 
 	// OpenSystemDynamics
-	gulp.src('OpenSystemDynamics/**')
-	.pipe(gulp.dest(destFolder+'/OpenSystemDynamics'));
+	gulp.src('OpenSystemDynamics/**', RAW)
+	.pipe(gulp.dest(destFolder+'/OpenSystemDynamics', RAW));
 
-	// icons 
-	gulp.src('icons/**')
-	.pipe(gulp.dest(destFolder+'/icons'));
+	// icons
+	gulp.src('icons/**', RAW)
+	.pipe(gulp.dest(destFolder+'/icons', RAW));
 
 	// MultiSimulationAnalyser
-	gulp.src('MultiSimulationAnalyser/**')
-	.pipe(gulp.dest(destFolder+'/MultiSimulationAnalyser'));
+	gulp.src('MultiSimulationAnalyser/**', RAW)
+	.pipe(gulp.dest(destFolder+'/MultiSimulationAnalyser', RAW));
 }
 
 function buildForWeb(destFolder) {
-	
-	// icons 
-	gulp.src('icons/**')
-	.pipe(gulp.dest(destFolder+'/icons'));
 
-	// icons 
-	gulp.src('webapp/**')
-	.pipe(gulp.dest(destFolder+'/webapp'));
+	// icons
+	gulp.src('icons/**', RAW)
+	.pipe(gulp.dest(destFolder+'/icons', RAW));
 
 	// Launcher
-	gulp.src('start.html')
+	gulp.src('start.html', RAW)
 	.pipe(rename('index.html'))
-	.pipe(gulp.dest(destFolder));
+	.pipe(gulp.dest(destFolder, RAW));
 
 	// Webapp
-	gulp.src('MultiSimulationAnalyser/multisimulationanalyser-manifest.json')
-	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/'));
+	gulp.src('MultiSimulationAnalyser/multisimulationanalyser-manifest.json', RAW)
+	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/', RAW));
 
-	gulp.src('MultiSimulationAnalyser/multisimulationanalyser-serviceworker.js')
-	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/'));
+	gulp.src('MultiSimulationAnalyser/multisimulationanalyser-serviceworker.js', RAW)
+	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/', RAW));
 
-	gulp.src('MultiSimulationAnalyser/stochsd-128.png')
-	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/'));
+	gulp.src('MultiSimulationAnalyser/stochsd-128.png', RAW)
+	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/', RAW));
 
-	gulp.src('MultiSimulationAnalyser/stochsd-256.png')
-	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/'));
+	gulp.src('MultiSimulationAnalyser/stochsd-256.png', RAW)
+	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/', RAW));
 
 	// OpenSystemDynamics
-	gulp.src('OpenSystemDynamics/src/*.html')
+	gulp.src('OpenSystemDynamics/src/*.html', RAW)
 	.pipe(useref())
-	.pipe(gulp.dest(destFolder+'OpenSystemDynamics/src'));
+	.pipe(gulp.dest(destFolder+'OpenSystemDynamics/src', RAW));
 
-	gulp.src('OpenSystemDynamics/src/graphics/**')
-	.pipe(gulp.dest(destFolder+'OpenSystemDynamics/src/graphics'));
+	gulp.src('OpenSystemDynamics/src/graphics/**', RAW)
+	.pipe(gulp.dest(destFolder+'OpenSystemDynamics/src/graphics', RAW));
 
-	gulp.src('OpenSystemDynamics/src/jquery/jquery-ui-1.12.1/images/**')
-	.pipe(gulp.dest(destFolder+'OpenSystemDynamics/src/images'));
+	gulp.src('OpenSystemDynamics/src/jquery/jquery-ui-1.12.1/images/**', RAW)
+	.pipe(gulp.dest(destFolder+'OpenSystemDynamics/src/images', RAW));
 
 	// MultiSimulationAnalyser
-	gulp.src('MultiSimulationAnalyser/index.html')
+	gulp.src('MultiSimulationAnalyser/index.html', RAW)
 	.pipe(useref())
-	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser'));
-	
+	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser', RAW));
+
 	// Make standalone.html for PWA web app
-	gulp.src('MultiSimulationAnalyser/index.html')
+	gulp.src('MultiSimulationAnalyser/index.html', RAW)
 	.pipe(rename('standalone.html'))
 	.pipe(useref())
-	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser'));
-	
-	gulp.src('MultiSimulationAnalyser/img/**')
-	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/img'));
+	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser', RAW));
 
-	gulp.src('MultiSimulationAnalyser/images/**')
-	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/images'));
+	gulp.src('MultiSimulationAnalyser/img/**', RAW)
+	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/img', RAW));
 
-	gulp.src('MultiSimulationAnalyser/icons/**')
-	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/icons'));
+	gulp.src('MultiSimulationAnalyser/images/**', RAW)
+	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/images', RAW));
 
-	gulp.src('MultiSimulationAnalyser/im_img/**')
-	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/im_img'));
+	gulp.src('MultiSimulationAnalyser/icons/**', RAW)
+	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/icons', RAW));
+
+	gulp.src('MultiSimulationAnalyser/im_img/**', RAW)
+	.pipe(gulp.dest(destFolder+'MultiSimulationAnalyser/im_img', RAW));
 }

@@ -1,24 +1,23 @@
 {
-	"name": "StochSD",
-	"version": "2020.06.05",
-	"description": "StochSD build package",
-	"author": "stochsdteam",
-	"devDependencies": {
-		"electron": "^32.0.0",
-		"electron-builder": "^25.0.0",
-		"gulp-useref": "3.1.6"
-	},
-	"dependencies": {
-		"gulp": "4.0.2",
-		"gulp-rename": "^1.4.0"
-	},
-	"scripts": {
-		"update-version": "node ./update-stochsd-version-from-git.js",
-		"build": "node ./node_modules/gulp/bin/gulp.js",
-		"install-analytics": "bash ./install-analytics.sh",
-		"dist": "npm run build && electron-builder --config electron-builder.json --mac --linux --win",
-		"dist:mac": "npm run build && electron-builder --config electron-builder.json --mac",
-		"dist:linux": "npm run build && electron-builder --config electron-builder.json --linux",
-		"dist:win": "npm run build && electron-builder --config electron-builder.json --win"
-	}
+  "name": "systemika",
+  "description": "systemika build package",
+  "author": "Filipe Medeiros <hello@filipesm.eu>",
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0",
+    "gulp-useref": "^5.0.0"
+  },
+  "dependencies": {
+    "gulp": "^5.0.1",
+    "gulp-rename": "^2.1.0"
+  },
+  "scripts": {
+    "update-version": "node ./update-stochsd-version-from-git.js",
+    "build": "gulp",
+    "install-analytics": "bash ./install-analytics.sh",
+    "dist": "npm run build && electron-builder --config electron-builder.json --mac --linux --win",
+    "dist:mac": "npm run build && electron-builder --config electron-builder.json --mac",
+    "dist:linux": "npm run build && electron-builder --config electron-builder.json --linux",
+    "dist:win": "npm run build && electron-builder --config electron-builder.json --win"
+  }
 }

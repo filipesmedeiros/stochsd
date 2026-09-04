@@ -1,12 +1,11 @@
 {
-  "name": "StochSD",
-  "version": "2019.09.01",
-  "description": "Stochastic Simulation application",
-  "author": "stochsdteam",
+  "name": "systemika",
+  "description": "Systemika",
+  "author": "Filipe Medeiros <hello@filipesm.eu>",
   "main": "electron/main.js",
   "scripts": {
     "electron": "electron .",
-    "deploy": "rsync -a ./OpenSystemDynamics/src/* uberspace_filipe1:~/www/ssd.systemika.org"
+    "deploy": "npm --prefix distribute run build && rsync -a distribute/output/web/$(node distribute/get-stochsd-version.js)/ uberspace_filipe1:~/www/ssd.systemika.org/"
   },
   "devDependencies": {
     "electron": "^32.0.0"
