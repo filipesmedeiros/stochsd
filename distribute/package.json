@@ -1,5 +1,6 @@
 {
   "name": "systemika",
+  "version": "2026.09.04",
   "description": "systemika build package",
   "author": "Filipe Medeiros <hello@filipesm.eu>",
   "devDependencies": {
