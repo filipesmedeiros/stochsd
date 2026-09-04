@@ -97,6 +97,12 @@ function createWindow() {
 			contextIsolation: true,
 			nodeIntegration: false,
 			sandbox: true,
+			// The actual editor (environment.js, editor.js) runs inside
+			// MultiSimulationAnalyser's #SimulationIFrame, not the top-level page —
+			// without this the preload script only reaches the outer frame, so
+			// window.electronAPI is undefined where detectEnvironment() checks for
+			// it and the app silently falls back to browser-storage behavior.
+			nodeIntegrationInSubFrames: true,
 		},
 	});
 

@@ -179,9 +179,10 @@ function restoreAfterRestart() {
 
 		if (skipStartupPicker) {
 			timeUnitDialog.show();
-		} else if (environment instanceof WebEnvironment) {
-			// The web app has nothing open yet on a fresh load, so start at the
-			// model picker rather than an empty, unitless canvas.
+		} else if (environment instanceof WebEnvironment && ModelStorage.list().length > 0) {
+			// Only worth landing on the picker if there is actually something
+			// stored to pick from — otherwise it's just an empty table standing
+			// between the user and a blank canvas.
 			browserModelsDialog.showAtStartup();
 		} else if (Preferences.get("promptTimeUnitDialogOnStart") && isTimeUnitOk(getTimeUnits()) === false) {
 			// if creating new file without OK timeUnit => promt TimeUnitDialog
@@ -6265,9 +6266,11 @@ $(window).load(function () {
 		// Import and Export instead.
 		$("#btn_import").show();
 		$("#btn_export").show();
-	} else {
+	} else if (environment instanceof WebEnvironment) {
 		// Files are already what Save and Open mean, so browser storage is offered
-		// as a second place to keep models rather than as the default.
+		// as a second place to keep models rather than as the default. Desktop
+		// (Electron) has no use for browser storage at all — it has real files —
+		// so this stays hidden there.
 		$("#btn_browser_models").show();
 	}
 	if (fileManager.hasRecentFiles()) {
@@ -9711,7 +9714,7 @@ class DirectoryDialog extends CloseDialog {
   constructor() {
 		super();
 		this.setTitle("Model directory");
- 
+
 		this.setHtml(`
 		test
 		`);
@@ -9742,6 +9745,9 @@ class BrowserModelsDialog extends jqDialog {
 		this.dialogParameters.buttons = {
 			"New Model": () => {
 				this.startNewModel();
+			},
+			"Open from File...": () => {
+				this.openFromFile();
 			},
 			"Close": () => {
 				$(this.dialog).dialog('close');
@@ -9789,6 +9795,15 @@ class BrowserModelsDialog extends jqDialog {
 			// picker; skip it once so New Model always reaches the time unit dialog.
 			localStorage.setItem("skipStartupPicker", "1");
 			fileManager.newModel();
+		});
+	}
+	// The escape hatch to a real file, for browsers where Open otherwise only
+	// means this dialog — same route as File > Import.
+	openFromFile() {
+		this.startupPrompt = false;
+		$(this.dialog).dialog('close');
+		saveChangedAlert(() => {
+			fileManager.importModel();
 		});
 	}
 	render() {
