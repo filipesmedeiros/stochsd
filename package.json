@@ -1,5 +1,6 @@
 {
   "name": "systemika",
+  "version": "2026.09.04",
   "description": "Systemika",
   "author": "Filipe Medeiros <hello@filipesm.eu>",
   "main": "electron/main.js",
