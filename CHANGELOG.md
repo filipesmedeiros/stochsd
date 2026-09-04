@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Converter plot preview in ConverterDialog.
 - Support for pasting two columns from a spreadsheet application into ConverterDialog.
 
+### Changed
+- StochSD Desktop now runs on Electron instead of NW.js.
+
 ### Fixed
 - UI cleanup and style update for menu and tool-buttons.
 - Fix bug where you can't use names "alpha" and "omega".

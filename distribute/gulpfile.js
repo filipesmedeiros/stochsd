@@ -12,17 +12,17 @@ function getStochSDVersion() {
 }
 
 gulp.task('default' , function(done) {
-	// The difference between the web build and the nwjs build is that the web build compresses everything to one single .js file
-	// To load faster over the web
-	// When we run locally in nwjs we have no intressed in doing so, and instead just run the code as is
-	// Which makes it easier to debug
+	// The difference between the web build and the desktop build is that the
+	// web build compresses everything to one single .js file to load faster
+	// over the web. The desktop build runs the code as-is, unbundled, which
+	// makes it easier to debug — and is what electron-builder packages.
 
 	const StochSDVersion = getStochSDVersion()
 	console.log("Building StochSD version ", StochSDVersion);
 
 	process.chdir(__dirname +'/..');
 	buildForWeb("distribute/output/web/"+StochSDVersion+"/");
-	buildForDesktop("distribute/output/package.nw/");
+	buildForDesktop("distribute/output/app/");
 	copyLicenses("distribute/output/");
 
 	// https://stackoverflow.com/questions/36897877/gulp-error-the-following-tasks-did-not-complete-did-you-forget-to-signal-async
@@ -48,10 +48,15 @@ function buildForDesktop(destFolder) {
 	// Launcher
 	gulp.src('start.html')
 	.pipe(gulp.dest(destFolder));
-	
-	// package.json. Needed for running "nw ." in output folder
+
+	// package.json. Needed for running "electron ." in the output folder, and
+	// read by electron-builder when packaging it.
 	gulp.src('package.json')
 	.pipe(gulp.dest(destFolder));
+
+	// Electron main process + preload bridge
+	gulp.src('electron/**')
+	.pipe(gulp.dest(destFolder+'/electron'));
 
 	// OpenSystemDynamics
 	gulp.src('OpenSystemDynamics/**')

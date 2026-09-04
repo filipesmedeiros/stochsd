@@ -4,8 +4,9 @@
 	"description": "StochSD build package",
 	"author": "stochsdteam",
 	"devDependencies": {
-		"gulp-useref": "3.1.6",
-		"nwjs-builder-phoenix": "^1.14.8"
+		"electron": "^32.0.0",
+		"electron-builder": "^25.0.0",
+		"gulp-useref": "3.1.6"
 	},
 	"dependencies": {
 		"gulp": "4.0.2",
@@ -15,6 +16,9 @@
 		"update-version": "node ./update-stochsd-version-from-git.js",
 		"build": "node ./node_modules/gulp/bin/gulp.js",
 		"install-analytics": "bash ./install-analytics.sh",
-		"dist-not-used": "build --tasks win-x86,win-x64,linux-x86,linux-x64,mac-x64 --mirror https://dl.nwjs.io/ ."
+		"dist": "npm run build && electron-builder --config electron-builder.json --mac --linux --win",
+		"dist:mac": "npm run build && electron-builder --config electron-builder.json --mac",
+		"dist:linux": "npm run build && electron-builder --config electron-builder.json --linux",
+		"dist:win": "npm run build && electron-builder --config electron-builder.json --win"
 	}
 }

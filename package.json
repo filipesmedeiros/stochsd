@@ -3,12 +3,12 @@
   "version": "2019.09.01",
   "description": "Stochastic Simulation application",
   "author": "stochsdteam",
-  "main": "start.html",
-  "window": {
-    "icon": "icons/stochsd.png"
-  },
+  "main": "electron/main.js",
   "scripts": {
-    "start": "nw .",
+    "electron": "electron .",
     "deploy": "rsync -a ./OpenSystemDynamics/src/* uberspace_filipe1:~/www/ssd.systemika.org"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0"
   }
 }

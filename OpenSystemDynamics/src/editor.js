@@ -375,8 +375,8 @@ function setParentTitle(newTitle) {
 }
 
 function quitQuestion() {
-	// How close event works
-	// https://github.com/nwjs/nw.js/wiki/window
+	// Called from ElectronEnvironment.ready() when electron/main.js intercepts
+	// the window's close button and asks whether it's safe to actually close.
 	saveChangedAlert(function () {
 		environment.closeWindow()
 	});
@@ -6302,7 +6302,6 @@ $(window).load(function () {
 	// When the program is fully loaded we create a new model
 	//~ fileManager.newModel();
 
-	nwController.ready();
 	environment.ready();
 	fileManager.ready();
 	restoreAfterRestart();

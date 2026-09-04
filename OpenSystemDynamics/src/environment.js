@@ -5,123 +5,16 @@ terms of the Affero General Public License (http://www.gnu.org/licenses/agpl-3.0
 
 */
 
-// This file controls the things that are depending on which environment the software is running in
-// There are two supported environments
+// This file controls the things that depend on which environment the
+// software is running in. There are two supported environments:
 // 1. Web
-// 2. NodeWebkit (http://nwjs.io)
+// 2. Electron (https://electronjs.org)
 //
-// The things that depend on the environment are things such as file handeling and window closing
-// The decision of which environment to use is in the bottom of this file
-
-var nwjsGui = null;
-var nwjsWindow = null;
-var nwjsApp = null;
+// The things that depend on the environment are things such as file handling
+// and window closing. The decision of which environment to use is at the
+// bottom of this file.
 
 const appName = "StochSD";
-
-class nwController {
-  static init() {
-    if (isRunningNwjs()) {
-      this.nwActive = true;
-      this.maximize = this.unsafeNwMaximize;
-      this.getWindow = this.unsafeGetWindow;
-      this.getParams = this.unsafeGetParams;
-      this.ready = this.unsafeReady;
-      this.openFile = this.unsafeOpenFile;
-    }
-  }
-  static ready() {
-    // This is replaced in init if NW is running
-  }
-  static unsafeReady() {
-    //~ NwZoomController.zoomReset();
-    NwZoomController.zoomLoadFromStorage();
-    let params = this.getParams();
-    if (params.length >= 1) {
-      let parameterFilename = params[0];
-      fileManager.loadFromFilePath(parameterFilename);
-    }
-
-    var ngui = this.unsafeGetGui();
-    var nwin = this.unsafeGetWindow();
-    var app = this.unsafeGetApp();
-    nwjsGui = ngui;
-    nwjsWindow = nwin;
-    nwjsApp = app;
-
-    // This save before closing handler only works when we run without plugin tools.
-    // Otherwise it makes it impossible to quit
-    nwin.on("close", function (event) {
-      quitQuestion();
-    });
-  }
-  static getWindow() {
-    // This is replaced in init if NW is running
-  }
-  static unsafeGetGui() {
-    var ngui = require("nw.gui");
-    return ngui;
-  }
-  static unsafeGetWindow() {
-    var ngui = require("nw.gui");
-    var nwin = ngui.Window.get();
-    return nwin;
-  }
-  static unsafeGetApp() {
-    var nwgui = require("nw.gui");
-    var App = nwgui.App;
-    return App;
-  }
-  static maximize() {
-    // This is replaced in init if NW is running
-  }
-  static unsafeNwMaximize() {
-    // This function is unsafe unless NW is active
-    var nwin = nwController.getWindow();
-    nwin.show();
-    nwin.maximize();
-  }
-  static getParams() { }
-  static unsafeGetParams() {
-    var nwgui = require("nw.gui");
-    return nwgui.App.argv;
-  }
-  static openFile() { }
-  static unsafeOpenFile(fileName) {
-    nwjsGui.Shell.openItem(fileName);
-  }
-}
-
-class NwZoomController {
-  static init() {
-    this.nwWindow = nwController.getWindow();
-  }
-  static zoomIn() {
-    do_global_log("Zooming in");
-    this.nwWindow.zoomLevel += 0.1;
-    localStorage.setItem("zoomLevel", this.nwWindow.zoomLevel);
-  }
-  static zoomOut() {
-    do_global_log("Zooming out");
-    this.nwWindow.zoomLevel -= 0.1;
-    localStorage.setItem("zoomLevel", this.nwWindow.zoomLevel);
-  }
-  static zoomReset() {
-    do_global_log("Reseting zoom");
-    this.nwWindow.zoomLevel = Settings.nwInitZoom;
-    localStorage.setItem("zoomLevel", this.nwWindow.zoomLevel);
-  }
-
-  static zoomLoadFromStorage() {
-    do_global_log("loading from storage zoom");
-    let loadedZoomLevel = localStorage.getItem("zoomLevel");
-    if (loadedZoomLevel == null) {
-      return;
-    }
-    loadedZoomLevel = Number(loadedZoomLevel);
-    this.nwWindow.zoomLevel = loadedZoomLevel;
-  }
-}
 
 class BaseFileManager {
   constructor() {
@@ -166,7 +59,7 @@ class BaseFileManager {
   }
   saveModelAs() {
     let fileData = createModelFileData();
-    // Only exportFile is implementation specific (different on nwjs and electron)
+    // Only exportFile is implementation specific (differs per environment)
     this.exportFile(fileData, Settings.fileExtension, (filePath) => {
       this.fileName = filePath;
       markModelSaved();
@@ -570,222 +463,22 @@ class WebFileManagerModern extends BaseFileManager {
   }
 }
 
+// Talks to electron/main.js through the bridge electron/preload.js exposes —
+// no direct Node or Electron access here, since the renderer runs with
+// contextIsolation/sandbox on (see electron/main.js's BrowserWindow options).
 class ElectronFileManager extends BaseFileManager {
   constructor() {
     super();
     this.softwareName = appName + " Desktop";
   }
 
-  // This is executed when the document is ready
   ready() {
     super.ready();
-  }
-  hasSaveAs() {
-    return true;
-  }
-  writeFile(fileName, FileData) {
-    do_global_log("NW: In write file");
-    //~ if(self.fileName == null) {
-    //~ self.saveModelAs();
-    //~ return;
-    //~ }
-    let fs = require("fs");
-    fs.writeFile(fileName, FileData, function (err) {
-      do_global_log("NW: in write file callback");
-      if (err) {
-        do_global_log("NW: Error in write file callback");
-        console.error(err);
-        alert("Error in file saving " + getStackTrace());
-      }
-      do_global_log("NW: Success in write file callback");
+    window.electronAPI.onOpenFile((filePath) => {
+      saveChangedAlert(() => {
+        this.loadFromFilePath(filePath);
+      });
     });
-  }
-  saveModel() {
-    do_global_log("Electron: save model triggered");
-    if (this.fileName == "") {
-      this.saveModelAs();
-      return;
-    }
-    this.doSaveModel(this.fileName);
-  }
-
-  /** A general file export function that can export any kind of file
-   */
-  exportFile(fileData, fileExtension, onSuccess) {
-    if (onSuccess == undefined) {
-      // On success is optoinal, so if it was not set we set it to an empty function
-      onSuccess = () => { };
-    }
-    const { dialog } = require("electron").remote;
-    let fileName = dialog.showSaveDialog();
-    if (fileName) {
-      fileName = this.appendFileExtension(fileName, fileExtension);
-      console.log("save filename", fileName);
-      this.writeFile(fileName, fileData);
-      onSuccess(fileName);
-    }
-  }
-  async doSaveModel(fileName) {
-    let fileData = createModelFileData();
-    this.writeFile(this.fileName, fileData);
-    markModelSaved();
-    this.updateSaveTime();
-    this.updateTitle();
-  }
-
-  async loadModel() {
-    do_global_log("Electron: load model");
-    const { dialog } = require("electron").remote;
-    console.log("dialog ", dialog);
-    let filenameArray = dialog.showOpenDialog({ properties: ["openFile"] });
-    console.log("filenameArray", filenameArray);
-    if (filenameArray.length > 0) {
-      this.loadFromFilePath(filenameArray[0]);
-    }
-  }
-  /** @param {string} filePath */
-  loadFromFilePath(filePath) {
-    var fs = require("fs");
-    var resolve = require("path").resolve;
-    var absoluteFileName = resolve(filePath);
-
-    fs.readFile(filePath, "utf8", (err, data) => {
-      if (err) {
-        return console.error(err);
-      }
-      console.error(fs);
-      this.fileName = absoluteFileName;
-      this.loadModelData(data);
-      this.updateTitle();
-    });
-  }
-}
-
-class NwFileManager extends BaseFileManager {
-  constructor() {
-    super();
-    this.softwareName = appName + " Desktop";
-  }
-
-  // This is executed when the document is ready
-  ready() {
-    super.ready();
-    // Prepare model loader
-
-    this.modelLoaderInput = document.body.appendChild(
-      document.createElement("input")
-    );
-    this.modelLoaderInput.className = "modelLoaderInput invisible-file-input";
-    this.modelLoaderInput.addEventListener(
-      "change",
-      (event) => {
-        do_global_log("NW: In read file callback");
-        var file = event.target.files[0];
-        if (file) {
-          do_global_log("NW: In read file callback has file");
-          this.fileName = file.path;
-          var reader = new FileReader();
-          reader.onload = (reader_event) => {
-            do_global_log("NW: reader.onload callback");
-            var fileData = reader_event.target.result;
-            History.forceCustomUndoState(fileData);
-
-            this.addToRecent(this.fileName);
-
-            this.updateTitle();
-            preserveRestart();
-          };
-          reader.readAsText(file);
-        }
-      },
-      false
-    );
-    this.modelLoaderInput.type = "file";
-    this.modelLoaderInput.accept = Settings.fileExtension;
-
-    // Prepare model saver
-    //<input type="file" nwsaveas>
-    this.modelSaverInput = document.body.appendChild(
-      document.createElement("input")
-    );
-    this.modelSaverInput.className = "modelSaverInput invisible-file-input";
-    this.modelSaverInput.addEventListener(
-      "change",
-      (event) => {
-        var file = event.target.files[0];
-        if (file) {
-          this.fileName = this.appendFileExtension(
-            file.path,
-            Settings.fileExtension
-          );
-          let fileData = createModelFileData();
-          this.writeFile(this.fileName, fileData);
-
-          this.addToRecent(this.fileName);
-
-          this.updateSaveTime();
-          this.updateTitle();
-          if (this.finishedSaveHandler) {
-            this.finishedSaveHandler();
-          }
-        }
-      },
-      false
-    );
-    this.modelSaverInput.type = "file";
-    this.modelSaverInput.nwsaveas = "";
-    this.modelSaverInput.accept = Settings.fileExtension;
-
-    // Prepare model saver
-    //<input type="file" nwsaveas>
-    this.fileExportInput = document.body.appendChild(
-      document.createElement("input")
-    );
-    this.fileExportInput.className = "fileExportInput invisible-file-input";
-    this.fileExportInput.onSuccess = function () {
-      alert("On success");
-    };
-    this.fileExportInput.onFailure = function () {
-      alert("On failure");
-    };
-    this.fileExportInput.addEventListener(
-      "change",
-      (event) => {
-        var file = event.target.files[0];
-        if (file) {
-          const exportFilePath = this.appendFileExtension(
-            file.path,
-            this.exportFileExtension
-          );
-          console.log("exportFilePath", exportFilePath);
-          this.writeFilePromise(exportFilePath, this.dataToExport)
-            .then((filePath) => {
-              this.fileExportInput.onSuccess(filePath);
-            })
-            .catch((err) => {
-              console.log(err);
-              this.fileExportInput.onFailure();
-            });
-        }
-      },
-      false
-    );
-    this.fileExportInput.type = "file";
-    this.fileExportInput.nwsaveas = "";
-    this.fileExportInput.accept = ".csv";
-  }
-  exportFile(dataToSave, fileExtension, onSuccess) {
-    if (onSuccess == undefined) {
-      // On success is optoinal, so if it was not set we set it to an empty function
-      onSuccess = () => { };
-    }
-    this.fileExportInput.onSuccess = onSuccess;
-    do_global_log("NW: export file");
-    this.fileExportInput.value = "";
-    this.exportFileExtension = fileExtension;
-    this.fileExportInput.accept = fileExtension;
-    this.dataToExport = dataToSave;
-    this.fileExportInput.click();
   }
   hasSaveAs() {
     return true;
@@ -794,106 +487,70 @@ class NwFileManager extends BaseFileManager {
     return true;
   }
   async getRecentDisplayList() {
-    // this just returns getRecentFiles, but this is not the case for
-    // other implementations of getRecentDisplayList
     return await this.getRecentFiles();
   }
   async getRecentFiles() {
-    let recentTemp = await idbKeyval.get("recentFiles")
-    let recentFiles = typeof recentTemp == "string"
-      ? JSON.parse(recentTemp)
-      : Array.isArray(recentTemp)
-        ? recentTemp
-        : []
-    return recentFiles;
+    let recentFiles = await idbKeyval.get("recentFiles");
+    return Array.isArray(recentFiles) ? recentFiles : [];
   }
   async setRecentFiles(recentFiles) {
-    idbKeyval.set("recentFiles", recentFiles);
+    await idbKeyval.set("recentFiles", recentFiles);
   }
   async addToRecent(filePath) {
     let limit = Settings.MaxRecentFiles;
     let recentFiles = await this.getRecentFiles();
-    if (recentFiles.includes(filePath)) {
-      let index = recentFiles.indexOf(filePath);
-      recentFiles.splice(index, 1);
-    }
-    if (recentFiles.length <= limit) {
-      recentFiles.splice(limit - 1);
+    let existingIndex = recentFiles.indexOf(filePath);
+    if (existingIndex !== -1) {
+      recentFiles.splice(existingIndex, 1);
     }
     recentFiles.unshift(filePath);
+    if (recentFiles.length > limit) {
+      recentFiles.splice(limit);
+    }
     await this.setRecentFiles(recentFiles);
   }
-  async removeFromRecent(filePath) {
-    let recentFiles = this.getRecentFiles();
-    let index = recentFiles.indexOf(filePath);
-    if (index !== -1) {
-      recentFiles.splice(index, 1);
-      this.setRecentFiles(recentFiles);
-    }
+  async clearRecent() {
+    await this.setRecentFiles([]);
   }
   async loadRecentByIndex(recentFileIndex) {
-    const recentFiles = await this.getRecentFiles();
-    const filePath = recentFiles[recentFileIndex];
-    this.loadFromFilePath(filePath);
+    let recentFiles = await this.getRecentFiles();
+    let filePath = recentFiles[recentFileIndex];
+    if (filePath) {
+      await this.loadFromFilePath(filePath);
+    }
   }
-  async clearRecent() {
-    await idbKeyval.set("recentFiles", JSON.stringify([]));
+
+  async writeFile(filePath, fileData) {
+    try {
+      await window.electronAPI.writeFile(filePath, fileData);
+    } catch (error) {
+      console.error(error);
+      alert("Error in file saving " + getStackTrace());
+      throw error;
+    }
   }
-  writeFile(fileName, FileData) {
-    do_global_log("NW: In write file");
-    //~ if(self.fileName == null) {
-    //~ self.saveModelAs();
-    //~ return;
-    //~ }
-    let fs = require("fs");
-    fs.writeFile(fileName, FileData, function (err) {
-      do_global_log("NW: in write file callback");
-      if (err) {
-        do_global_log("NW: Error in write file callback");
-        console.error(err);
-        alert("Error in file saving " + getStackTrace());
-      }
-      do_global_log("NW: Success in write file callback");
-    });
-  }
-  writeFilePromise(filePath, fileData) {
-    return new Promise((resolve, reject) => {
-      let fs = require("fs");
-      fs.writeFile(filePath, fileData, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(filePath);
-        }
-      });
-    });
-  }
+
   saveModel() {
-    do_global_log("NW: save model triggered");
     if (this.fileName == "") {
       this.saveModelAs();
       return;
     }
-    let fileData = createModelFileData();
-    this.writeFilePromise(this.fileName, fileData)
-      .then((filePath) => {
-        markModelSaved();
-        this.updateSaveTime();
-        this.updateTitle();
-        this.addToRecent(filePath);
-        if (this.finishedSaveHandler) {
-          this.finishedSaveHandler();
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-        console.log(trace);
-        alert("Error in file saving " + getStackTrace());
-      });
+    this.doSaveModel(this.fileName);
   }
+  async doSaveModel(fileName) {
+    let fileData = createModelFileData();
+    await this.writeFile(fileName, fileData);
+    await this.addToRecent(fileName);
+    markModelSaved();
+    this.updateSaveTime();
+    this.updateTitle();
+    if (this.finishedSaveHandler) {
+      this.finishedSaveHandler();
+    }
+  }
+
   saveModelAs() {
     let fileData = createModelFileData();
-    // Only exportFile is implementation specific (different on nwjs and electron)
     this.exportFile(fileData, Settings.fileExtension, (filePath) => {
       this.fileName = filePath;
       markModelSaved();
@@ -905,41 +562,41 @@ class NwFileManager extends BaseFileManager {
       }
     });
   }
+
+  // A general file export function that can export any kind of file (also
+  // used for CSV/TSV table exports, not just the model itself).
+  async exportFile(dataToSave, fileExtension, onSuccess) {
+    if (onSuccess == undefined) {
+      onSuccess = () => { };
+    }
+    let suggestedName = this.appendFileExtension(this.defaultExportBaseName(), fileExtension);
+    let filePath = await window.electronAPI.showSaveDialog(suggestedName, fileExtension);
+    if (!filePath) {
+      return;
+    }
+    filePath = this.appendFileExtension(filePath, fileExtension);
+    await this.writeFile(filePath, dataToSave);
+    onSuccess(filePath);
+  }
+
   async loadModel() {
-    do_global_log("NW: load model");
-    this.modelLoaderInput.value = "";
-    this.modelLoaderInput.click();
-
-    // The following line seems to cause a flicky bug
-    //~ uploader.parentElement.removeChild(uploader);
+    let filePath = await window.electronAPI.showOpenDialog(Settings.fileExtension);
+    if (filePath) {
+      await this.loadFromFilePath(filePath);
+    }
   }
-  /** @param {string} fileName */
-  loadFromFilePath(fileName) {
-    var fs = require("fs");
-    var resolve = require("path").resolve;
-    var absoluteFileName = resolve(fileName);
-
-    fs.readFile(fileName, "utf8", (err, data) => {
-      if (err) {
-        alert(
-          `Error: File ${fileName} not found. \nThis file reference is now removed from Recent List.`
-        );
-        this.removeFromRecent(fileName);
-        return console.error(err);
-      }
-      this.fileName = absoluteFileName;
-      History.forceCustomUndoState(data);
-      this.updateTitle();
-      this.addToRecent(this.fileName);
-      preserveRestart();
-    });
-  }
-  /** @param {File} file */
-  loadFromFile(file) {
-    this.loadFromFilePath(file.path)
+  /** @param {string} filePath */
+  async loadFromFilePath(filePath) {
+    let fileData = await window.electronAPI.readFile(filePath);
+    this.fileName = filePath;
+    // Loaded from disk, so it has no browser-storage entry behind it.
+    this.storedModelName = null;
+    await this.addToRecent(filePath);
+    History.forceCustomUndoState(fileData);
+    this.updateTitle();
+    preserveRestart();
   }
 }
-
 class BaseEnvironment {
   getName() {
     return "base";
@@ -1004,8 +661,9 @@ class ElectronEnvironment extends BaseEnvironment {
     return "electron";
   }
   ready() {
-    const { ipcRenderer } = require("electron");
-    ipcRenderer.on("try-to-close-message", (event, arg) => {
+    // electron/main.js intercepts the window's close button and asks here
+    // first, so unsaved changes can be checked before the app actually quits.
+    window.electronAPI.onTryToClose(() => {
       quitQuestion();
     });
   }
@@ -1013,83 +671,31 @@ class ElectronEnvironment extends BaseEnvironment {
     return new ElectronFileManager();
   }
   closeWindow() {
-    const { ipcRenderer } = require("electron");
-    ipcRenderer.send("destroy-message", "ping");
-  }
-}
-
-class NwEnvironment extends BaseEnvironment {
-  getName() {
-    return "nwjs";
-  }
-  constructor() {
-    super();
-    nwController.init();
-    nwController.maximize();
-    NwZoomController.init();
-  }
-  ready() {
-    // The View menu zoom buttons drive the canvas zoom in every environment now;
-    // they are bound centrally in editor.js. NwZoomController still sets the
-    // desktop window's own scale at startup, which is a separate thing.
-    $(".hideUnlessNwjs").removeClass("hideUnlessNwjs");
-  }
-  keyDown(event) {
-    if (event.ctrlKey) {
-      // Does not work in web browsers-since ctrl+N is reserved
-      if (event.key.toLowerCase() == "n") {
-        event.preventDefault();
-        $("#btn_new").click();
-      }
-      if (event.key == "+")
-        NwZoomController.zoomIn();
-      if (event.key == "-")
-        NwZoomController.zoomOut();
-      if (event.key == "0")
-        NwZoomController.zoomReset();
-    }
-  }
-  getFileManager() {
-    return new NwFileManager();
-  }
-  closeWindow() {
-    nwjsWindow.close(true);
+    // Tells main.js it's safe to actually close the window now — see the
+    // matching "window:confirm-close" handler in electron/main.js.
+    window.electronAPI.confirmClose();
   }
   openLink(url) {
     // Returns true or false
     // if returning true, the caller will do e.preventDefault()
     // to not trying to open the link the the browsers default way
     // Default: false
-    nwjsGui.Shell.openExternal(url);
+    window.electronAPI.openExternal(url);
     // Return true, because we dont want it to Also open it the default way
     return true;
   }
 }
 
+// contextIsolation is on (see electron/main.js), so there is no Node/Electron
+// global in the renderer to detect against — electron/preload.js exposes
+// window.electronAPI.isElectron only when running inside that shell.
 function isRunningElectron() {
-  // https://github.com/electron/electron/issues/2288
-  if (typeof process !== "undefined") {
-    if (typeof process.versions["electron"] !== "undefined") {
-      return true;
-    }
-  }
-  return false;
-}
-
-function isRunningNwjs() {
-  // https://stackoverflow.com/questions/31968355/detect-if-web-app-is-running-in-nwjs
-  try {
-    return typeof require("nw.gui") !== "undefined";
-  } catch (e) {
-    return false;
-  }
+  return typeof window.electronAPI !== "undefined" && window.electronAPI.isElectron === true;
 }
 
 function detectEnvironment() {
   if (isRunningElectron()) {
     return new ElectronEnvironment();
-  } else if (isRunningNwjs()) {
-    return new NwEnvironment();
   } else {
     return new WebEnvironment();
   }

@@ -51,9 +51,6 @@ text.name_element {
     font-family: monospace;
 }
 
-.hideUnlessNwjs {
-    display: none !important;
-}
 #svgplane {
     border-width: 0px;
 }

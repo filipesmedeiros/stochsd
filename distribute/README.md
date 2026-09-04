@@ -1,6 +1,6 @@
 # Todo list for uploading new version
 
-### Create new StochSD version (2020 july):
+### Create new StochSD version:
 
 #### Build general versions with gulp
 
@@ -13,26 +13,32 @@
 
 4. Run command: `npm run build`
 
-   ###### This runs `gulp` and creates the folder `stochsd/distribute/output/` containing `package.nw/`  for the desktop version and `stochsd-web/` for the web version.
+   ###### This runs `gulp` and creates the folder `stochsd/distribute/output/` containing `app/` (the desktop app source, unbundled) and `web/` (the web version, bundled).
 
 **Note:** If problems arise with gulp, set latest versions of [gulp](https://www.npmjs.com/package/gulp) and [gulp-useref](https://www.npmjs.com/package/gulp-useref) or 
 learn more at https://www.udemy.com/starting-with-gulp/learn/v4/content.
 
-#### Make Windows version of StochSD
+#### Make desktop installers (Electron)
 
-goto: `stochsd/distribute/package-for-win32/`
-or `stochsd/distribute/package-for-win64/`
+The desktop app is a normal Electron app packaged with
+[electron-builder](https://www.electron.build/), from `stochsd/distribute/`:
 
-And run command:
+- `npm run dist:mac` — builds `output/dist-electron/*.dmg` and `*.zip`
+- `npm run dist:linux` — builds `output/dist-electron/*.AppImage`
+- `npm run dist:win` — builds `output/dist-electron/*.exe` (portable)
+- `npm run dist` — builds all three
 
-`./download.sh` to download nwjs
-then `./package.sh` to package
+Each of these runs `npm run build` first, so there's no separate download step
+— electron-builder fetches the Electron binary for the target platform(s)
+itself. Building the Windows target from macOS or Linux works without
+installing anything extra since it targets `portable` (no installer); an NSIS
+installer would need Wine or an actual Windows machine/CI runner.
 
-This will create the folder `stochsd/distribute/nwjs-output/` containing `stochsd-yyyy.mm.dd-winXX`.
+Config lives in `distribute/electron-builder.json`. The version comes from
+`stochsd/OpenSystemDynamics/src/version.js`, same as before.
 
-The version is dependent on the file: `stochsd/OpenSystemDynamics/src/version.js`
-
-**Note:** If `zip` command is not installed in `Git BASH` [here is a guide](https://ranxing.wordpress.com/2016/12/13/add-zip-into-git-bash-on-windows/)
+For local development without packaging anything, `electron .` from the repo
+root runs the app straight from source.
 
 
 
@@ -48,16 +54,6 @@ __NOTE__: don't use the SourceForge website for uploading since it is not as rel
   - Default folder for web-version upload: `/home/project-web/s/st/stochsd/htdocs`
 
 - Upload `build/stochsd-web` and replace folder `/home/project-web/s/st/stochsd/htdocs/software` with same name.
-
-  ## If nw.exe wont respond in windows?
-
-  It might be because more then one version of nwjs was started and has created conflicting info in `c:/user/[username]/AppData/StochSD`. Delete this folder, and restart if necessary.
-
-  **NOTE: Use NW.JS v0.48.2**
-
-  ##Change icon for EXE file
-
-  Use the program Resource Hacker to change exe file icon.
 
   ##To update website 
 

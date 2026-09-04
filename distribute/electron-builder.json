@@ -1,0 +1,22 @@
+{
+	"appId": "org.stochsd.desktop",
+	"productName": "StochSD",
+	"directories": {
+		"app": "output/app",
+		"output": "output/dist-electron"
+	},
+	"mac": {
+		"target": ["dmg", "zip"],
+		"icon": "../icons/stochsd.icns",
+		"category": "public.app-category.education"
+	},
+	"linux": {
+		"target": ["AppImage"],
+		"icon": "../icons/stochsd.png",
+		"category": "Education;Science"
+	},
+	"win": {
+		"target": ["portable"],
+		"icon": "../icons/stochsd.ico"
+	}
+}
