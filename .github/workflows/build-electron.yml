@@ -1,0 +1,95 @@
+name: Build Electron Binaries
+
+# Manual only: run from the Actions tab ("Run workflow"). Builds the desktop
+# app for macOS, Linux, and Windows and publishes the results as a GitHub
+# Release so they're downloadable from the repo.
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to publish under (leave blank to auto-generate one from the app version and run number)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            dist_script: dist:mac
+            artifact_name: macos
+          - os: ubuntu-latest
+            dist_script: dist:linux
+            artifact_name: linux
+          - os: windows-latest
+            dist_script: dist:win
+            artifact_name: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Install build dependencies
+        working-directory: distribute
+        run: npm install
+
+      - name: Build (${{ matrix.artifact_name }})
+        working-directory: distribute
+        run: npm run ${{ matrix.dist_script }}
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: stochsd-${{ matrix.artifact_name }}
+          if-no-files-found: warn
+          path: |
+            distribute/output/dist-electron/*.dmg
+            distribute/output/dist-electron/*.zip
+            distribute/output/dist-electron/*.AppImage
+            distribute/output/dist-electron/*.exe
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Download all build outputs
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Determine release tag
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.release_tag }}"
+          if [ -z "$TAG" ]; then
+            VERSION="$(node distribute/get-stochsd-version.js)"
+            TAG="electron-${VERSION}-${{ github.run_number }}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create release and attach binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.tag.outputs.tag }}" \
+            --title "StochSD Electron build ${{ steps.tag.outputs.tag }}" \
+            --notes "Automated Electron build from commit ${{ github.sha }}." \
+            artifacts/*/*
