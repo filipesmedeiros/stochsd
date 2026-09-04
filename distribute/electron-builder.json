@@ -7,16 +7,16 @@
 	},
 	"mac": {
 		"target": ["dmg", "zip"],
-		"icon": "../icons/stochsd.icns",
+		"icon": "../app-icons/stochsd.icns",
 		"category": "public.app-category.education"
 	},
 	"linux": {
 		"target": ["AppImage"],
-		"icon": "../icons/stochsd.png",
+		"icon": "../app-icons/stochsd.png",
 		"category": "Education;Science"
 	},
 	"win": {
 		"target": ["portable"],
-		"icon": "../icons/stochsd.ico"
+		"icon": "../app-icons/stochsd.ico"
 	}
 }

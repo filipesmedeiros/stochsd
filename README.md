@@ -27,3 +27,6 @@ Read user manual in `./OpenSystemDynamics/docs/StochSD_User_Manual.pdf`.
 ## Read code documentation
 Look at documentation in `./OpenSystemDynamics/docs/code/`
 
+# AI disclosure
+
+I (Filipe Medeiros) hate AI. Honestly. But this fork of StochSD has a lot of work done by Claude Code. Sorry…

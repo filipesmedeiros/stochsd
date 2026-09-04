@@ -69,8 +69,8 @@ function buildForDesktop(destFolder) {
 	.pipe(gulp.dest(destFolder+'/OpenSystemDynamics', RAW));
 
 	// icons
-	gulp.src('icons/**', RAW)
-	.pipe(gulp.dest(destFolder+'/icons', RAW));
+	gulp.src('app-icons/**', RAW)
+	.pipe(gulp.dest(destFolder+'/app-icons', RAW));
 
 	// MultiSimulationAnalyser
 	gulp.src('MultiSimulationAnalyser/**', RAW)
@@ -80,8 +80,8 @@ function buildForDesktop(destFolder) {
 function buildForWeb(destFolder) {
 
 	// icons
-	gulp.src('icons/**', RAW)
-	.pipe(gulp.dest(destFolder+'/icons', RAW));
+	gulp.src('app-icons/**', RAW)
+	.pipe(gulp.dest(destFolder+'/app-icons', RAW));
 
 	// Launcher
 	gulp.src('start.html', RAW)
